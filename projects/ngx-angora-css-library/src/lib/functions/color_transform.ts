@@ -243,7 +243,28 @@ export const color_transform = {
   },
   opacityCreator(value: string, opacity: number): string {
     if (value.includes('gradient')) {
-      return value;
+      const colorMatches = this.separateColor4Transform(value);
+      console_log.consoleLog('info', { colorMatches: colorMatches });
+      if (!!colorMatches) {
+        for (let colorMatch of colorMatches) {
+          console_log.consoleLog('info', {
+            valuePreSeparateColor4TransformPreCB: value,
+          });
+          value = value.replace(
+            colorMatch,
+            this.opacityCreator(colorMatch, opacity)
+          );
+          console_log.consoleLog('info', {
+            valuePostSeparateColor4TransformPostCB: value,
+          });
+        }
+        console_log.consoleLog('info', {
+          valuePostSeparateColor4Transform: value,
+        });
+        return value;
+      } else {
+        return value;
+      }
     } else {
       let shade3Split: number[] = this.colorToRGB(value);
       console_log.consoleLog('info', { shade3Split: shade3Split });
@@ -258,11 +279,39 @@ export const color_transform = {
   },
   getShadeTintColorOrGradient(tintValue: number, value: string): string {
     if (value.includes('gradient')) {
-      return value;
+      const colorMatches = this.separateColor4Transform(value);
+      console_log.consoleLog('info', { colorMatches: colorMatches });
+      if (!!colorMatches) {
+        for (let colorMatch of colorMatches) {
+          console_log.consoleLog('info', {
+            valuePreSeparateColor4TransformPreCB: value,
+          });
+          value = value.replace(
+            colorMatch,
+            this.getShadeTintColorOrGradient(tintValue, colorMatch)
+          );
+          console_log.consoleLog('info', {
+            valuePostSeparateColor4TransformPostCB: value,
+          });
+        }
+        console_log.consoleLog('info', {
+          valuePostSeparateColor4Transform: value,
+        });
+        return value;
+      } else {
+        return value;
+      }
     } else {
       return `rgba(${color_transform
         .shadeTintColor(color_transform.colorToRGB(value), tintValue)
         .join(',')})`;
     }
+  },
+  separateColor4Transform(value: string): RegExpMatchArray | null {
+    console_log.consoleLog('info', { valuePreSeparateColor4Transform: value });
+    const colorReg: RegExp = new RegExp(
+      /(?:(#[A-Fa-f0-9]{3,8})|(?:(rgb)|(hsl)|(hwb))a?\([0-9\.\,\s%]*\))/gi
+    );
+    return value.match(colorReg);
   },
 };

@@ -1,6 +1,5 @@
 /* Singletons */
 import { ValuesSingleton } from '../../../singletons/valuesSingleton';
-import { console_log } from '../../console_log';
 import { css_camel } from '../../css-camel';
 import { btnCreator } from './btnCreator';
 import { propertyNValueCorrector } from './propertyNValueCorrector';
@@ -12,9 +11,7 @@ export const property2ValueJoiner = async (
   propertyValues: string[] = [''],
   specify: string = ''
 ): Promise<string> => {
-  let cssNamesParsedForBackgroundColor = Object.keys(
-    values.cssNamesParsed
-  ).filter((c) => values.cssNamesParsed[c].includes('background-color'));
+  let SpecifyRegex: RegExp = new RegExp(values.specify, 'g');
   switch (true) {
     case !!values.cssNamesParsed[property.toString()]:
       if (typeof values.cssNamesParsed[property.toString()] === 'string') {
@@ -23,10 +20,12 @@ export const property2ValueJoiner = async (
           propertyValues[0].includes('gradient')
             ? '::before'
             :  */ ''
-        }{${await propertyNValueCorrector(
-          values.cssNamesParsed[property.toString()] as string,
-          propertyValues[0]
-        )}}`;
+        }{${(
+          await propertyNValueCorrector(
+            values.cssNamesParsed[property.toString()] as string,
+            propertyValues[0]
+          )
+        ).replace(SpecifyRegex, specify)}}`;
       } else {
         let properties: string[] = values.cssNamesParsed[
           property.toString()
@@ -34,20 +33,21 @@ export const property2ValueJoiner = async (
         return `${specify}{${(
           await Promise.all(
             properties.map(async (c: any, i: number) => {
-              return await propertyNValueCorrector(
-                c,
-                propertyValues[i] || propertyValues[0] || ''
-              );
+              return (
+                await propertyNValueCorrector(
+                  c,
+                  propertyValues[i] || propertyValues[0] || ''
+                )
+              ).replace(SpecifyRegex, specify);
             })
           )
         ).join('')}}`;
       }
       break;
     case class2CreateSplited[1].startsWith('link'):
-      return ` a${specify}{${await propertyNValueCorrector(
-        'color',
-        propertyValues[0]
-      )}}`;
+      return ` a${specify}{${(
+        await propertyNValueCorrector('color', propertyValues[0])
+      ).replace(SpecifyRegex, ` a${specify}`)}}`;
       break;
     case class2CreateSplited[1].startsWith('btnOutline'):
       return await btnCreator(
@@ -62,10 +62,12 @@ export const property2ValueJoiner = async (
       return await btnCreator(class2Create, specify, propertyValues[0]);
       break;
     default:
-      return `${specify}{${await propertyNValueCorrector(
-        css_camel.camelToCSSValid(property),
-        propertyValues[0]
-      )};}`;
+      return `${specify}{${(
+        await propertyNValueCorrector(
+          css_camel.camelToCSSValid(property),
+          propertyValues[0]
+        )
+      ).replace(SpecifyRegex, specify)};}`;
       break;
   }
 };

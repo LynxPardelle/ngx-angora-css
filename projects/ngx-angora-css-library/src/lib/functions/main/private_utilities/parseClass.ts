@@ -163,6 +163,9 @@ export const parseClass = async (
   if (!propertyValues[0]) {
     propertyValues[0] = 'default';
   }
+  console_log.consoleLog('info', {
+    class2CreateStringedBeforeProperty2ValueJoiner: class2CreateStringed,
+  });
   // Joining the property and the values
   class2CreateStringed += await property2ValueJoiner(
     property,

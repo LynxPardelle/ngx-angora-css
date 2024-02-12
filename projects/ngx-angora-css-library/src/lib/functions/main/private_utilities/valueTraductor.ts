@@ -13,32 +13,7 @@ export const valueTraductor = async (
       : value
   );
   if (!property.includes('content')) {
-    let hasOPA: boolean = value.includes('OPA');
-    console_log.consoleLog('info', { hasOPA: hasOPA, value: value });
-    if (!!hasOPA) {
-      const reg = new RegExp(
-        /(?:([A-z0-9#]*)|(?:(rgb)|(hsl)|(hwb))a?\([0-9\.\,\s%]*\))\s?OPA\s?0\.[0-9]*/gi
-      );
-      const OPAS: string[] | null = value.match(reg);
-      if (!!OPAS) {
-        for (let OPA of OPAS) {
-          const color = OPA.split('OPA')[0];
-          const OPAValue = OPA.split('OPA')[1];
-          let realColor = `${color_transform
-            .colorToRGB(
-              !!values.colors[color.toString().replace(/\s/g, '')]
-                ? values.colors[color.toString().replace(/\s/g, '')]
-                : color
-            )
-            .toString()}`;
-          value = !!OPAValue
-            ? value
-                .replace(color, `rgba(${realColor},${OPAValue})`)
-                .replace('OPA' + OPAValue, '')
-            : value;
-        }
-      }
-    }
+    value = await opaParser(value);
     // MatchForColors and ReplaceForColors
     let colors = Object.keys(values.colors)
       .sort((c1, c2) => {
@@ -77,6 +52,38 @@ export const valueTraductor = async (
           console_log.consoleLog('info', { value: value });
         }
       }
+    }
+  }
+  return value;
+};
+export const opaParser = async (value: string): Promise<string> => {
+  let hasOPA: boolean = value.includes('OPA');
+  console_log.consoleLog('info', { hasOPA: hasOPA, value: value });
+  if (!!hasOPA) {
+    const reg = new RegExp(
+      /(?:([A-z0-9#]*)|(?:(rgb)|(hsl)|(hwb))a?\([0-9\.\,\s%]*\))\s?OPA\s?0\.[0-9]*/gi
+    );
+    const OPAS: string[] | null = value.match(reg);
+    if (!!OPAS) {
+      await Promise.all(
+        OPAS.map(async (OPA) => {
+          const color = OPA.split('OPA')[0];
+          const OPAValue = OPA.split('OPA')[1];
+          const realColor = `${color_transform
+            .colorToRGB(
+              !!values.colors[color.toString().replace(/\s/g, '')]
+                ? values.colors[color.toString().replace(/\s/g, '')]
+                : color
+            )
+            .toString()}`;
+          value = !!OPAValue
+            ? value
+                .replace(color, `rgba(${realColor},${OPAValue})`)
+                .replace('OPA' + OPAValue, '')
+            : value;
+          return value;
+        })
+      );
     }
   }
   return value;

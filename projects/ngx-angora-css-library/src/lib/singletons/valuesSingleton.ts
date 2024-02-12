@@ -58,6 +58,7 @@ export class ValuesSingleton {
   public limitBPS: boolean = false;
   public styleSheetToManage: string = 'angora-styles';
   public separator: string = 'þµÞ';
+  public specify: string = '🜏🜏🜏';
   /* Console */
   public styleConsole: string = `padding: 1rem; background-color: ${this.colors['abyss']}; color: ${this.colors['lavenderLP']};`;
   /* Pseudos */
