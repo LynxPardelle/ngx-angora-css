@@ -7,25 +7,38 @@ type TVals2Sort = {
 export const values4ComboGetter = async (
   class2Create: string
 ): Promise<string[]> => {
-  /*
-  FIXME: Hay un problema con los combos, si se añade más de un valor específico, dejan de funcionar los valores específicos, pero no los otros después de "VL"
-  */
   if (!!class2Create.includes('VALS')) {
     let valsSource: string = class2Create.split('VALS')[1];
     console_log.consoleLog('info', { valsSource: valsSource });
-    let valueReg = new RegExp(/VAL[0-9]N.*VAL[0-9]N/, 'g');
+    let valueReg = new RegExp(/VAL([0-9_]+)N[A-z0-9]+VAL\1N/, 'g');
     if (valueReg.test(valsSource)) {
-      let valsToSortSource = valsSource.match(valueReg);
+      let valsToSortSource: RegExpMatchArray | null =
+        valsSource.match(valueReg);
       console_log.consoleLog('info', { valsToSortSource: valsToSortSource });
       if (!!valsToSortSource) {
+        let valsToSortExtras: TVals2Sort[] = [];
         let valsToSort: TVals2Sort[] = valsToSortSource.map((v: string) => {
-          let index: number = parseInt(v.split('VAL')[1].split('N')[0]);
+          let index: string = v.split('VAL')[1].split('N')[0];
           let valReplace: RegExp = new RegExp(`VAL${index}N`, 'g');
+          let firstIndex: number = parseInt(index);
+          if (index.includes('_')) {
+            let indexes: string[] = index.split('_');
+            firstIndex = parseInt(indexes[0]);
+            indexes.forEach((i: string, it: number) => {
+              if (it > 0) {
+                valsToSortExtras.push({
+                  index: parseInt(i),
+                  val: v.replace(valReplace, ''),
+                });
+              }
+            });
+          }
           return {
-            index: index,
+            index: firstIndex,
             val: v.replace(valReplace, ''),
           };
         });
+        valsToSort = valsToSort.concat(valsToSortExtras);
         console_log.consoleLog('info', { valsToSort: valsToSort });
         let valsNotSorted: string[] = valsSource.split('VL');
         console_log.consoleLog('info', { valsNotSorted: valsNotSorted });
