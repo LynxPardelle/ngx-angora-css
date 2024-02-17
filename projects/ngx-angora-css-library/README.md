@@ -1,24 +1,25 @@
 # NgxAngoraCss
 
-This library was generated with [Angular CLI](https://github.com/angular/angular-cli) version 17.1.0.
+## 📝 Table of Contents
 
-## Code scaffolding
+- [About](#about)
+- [Getting Started](#getting_started)
+- [Authors](#authors)
 
-Run `ng generate component component-name --project ngx-angora-css-library` to generate a new component. You can also use `ng generate directive|pipe|service|class|guard|interface|enum|module --project ngx-angora-css-library`.
-> Note: Don't forget to add `--project ngx-angora-css-library` or else it will be added to the default project in your `angular.json` file. 
+## 🧐 About <a name = “about”></a>
 
-## Build
+NgxAngoraCss is a css framework made in js that creates all the css styles from your classes dynamically in the load of your pages, that mean that your users will only need to download the js and not a css file of 50mb+ and speed up you charge with a simple task that only consumes a few memory of the ram of the user.
 
-Run `ng build ngx-angora-css-library` to build the project. The build artifacts will be stored in the `dist/` directory.
+## 🏁 Getting Started <a name = “about”></a>
 
-## Publishing
+You can check the full tutorial on this [link](https://ngx-bootstrap-expanded-features.vercel.app/) but you will need to change the name of the classes to the new ones that are on the library, like instead of using bef, you will need to use ank and instead of using bef-styles.css you will need to use angora-styles.js for the css style sheet file.
 
-After building your library with `ng build ngx-angora-css-library`, go to the dist folder `cd dist/ngx-angora-css-library` and run `npm publish`.
+We will have a special page for the documentation of the library and the new classes that are on the library soon.
 
-## Running unit tests
+## ✍️ Authors <a name = “authors”></a>
 
-Run `ng test ngx-angora-css-library` to execute the unit tests via [Karma](https://karma-runner.github.io).
+Lynx Pardelle
 
-## Further help
+## Support this library
 
-To get more help on the Angular CLI use `ng help` or go check out the [Angular CLI Overview and Command Reference](https://angular.io/cli) page.
+[Buy Me a Coffe](https://www.buymeacoffee.com/lynxpardelle)

@@ -1,27 +1,25 @@
 # NgxAngoraCss
 
-This project was generated with [Angular CLI](https://github.com/angular/angular-cli) version 17.1.2.
+## 📝 Table of Contents
 
-## Development server
+- [About](#about)
+- [Getting Started](#getting_started)
+- [Authors](#authors)
 
-Run `ng serve` for a dev server. Navigate to `http://localhost:4200/`. The application will automatically reload if you change any of the source files.
+## 🧐 About <a name = “about”></a>
 
-## Code scaffolding
+NgxAngoraCss is a css framework made in js that creates all the css styles from your classes dynamically in the load of your pages, that mean that your users will only need to download the js and not a css file of 50mb+ and speed up you charge with a simple task that only consumes a few memory of the ram of the user.
 
-Run `ng generate component component-name` to generate a new component. You can also use `ng generate directive|pipe|service|class|guard|interface|enum|module`.
+## 🏁 Getting Started <a name = “about”></a>
 
-## Build
+You can check the full tutorial on this [link](https://bootstrap-expanded-features.vercel.app/) but you will need to change the name of the classes to the new ones that are on the library, like instead of using bef, you will need to use ank and instead of using bef-styles.css you will need to use angora-styles.js for the css style sheet file.
 
-Run `ng build` to build the project. The build artifacts will be stored in the `dist/` directory.
+We will have a special page for the documentation of the library and the new classes that are on the library soon.
 
-## Running unit tests
+## ✍️ Authors <a name = “authors”></a>
 
-Run `ng test` to execute the unit tests via [Karma](https://karma-runner.github.io).
+Lynx Pardelle
 
-## Running end-to-end tests
+## Support this library
 
-Run `ng e2e` to execute the end-to-end tests via a platform of your choice. To use this command, you need to first add a package that implements end-to-end testing capabilities.
-
-## Further help
-
-To get more help on the Angular CLI use `ng help` or go check out the [Angular CLI Overview and Command Reference](https://angular.io/cli) page.
+[Buy Me a Coffe](https://www.buymeacoffee.com/lynxpardelle)
