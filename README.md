@@ -12,7 +12,7 @@ NgxAngoraCss is a css framework made in js that creates all the css styles from 
 
 ## 🏁 Getting Started <a name = “about”></a>
 
-You can check the full tutorial on this [link](https://bootstrap-expanded-features.vercel.app/) but you will need to change the name of the classes to the new ones that are on the library, like instead of using bef, you will need to use ank and instead of using bef-styles.css you will need to use angora-styles.js for the css style sheet file.
+You can check the full tutorial on this [link](https://lynx-bef.vercel.app/) but you will need to change the name of the classes to the new ones that are on the library, like instead of using bef, you will need to use ank and instead of using bef-styles.css you will need to use angora-styles.js for the css style sheet file.
 
 We will have a special page for the documentation of the library and the new classes that are on the library soon.
 
