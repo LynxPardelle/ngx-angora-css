@@ -348,6 +348,10 @@ export class ValuesSingleton {
   public timesCSSCreated: number = 0;
   public timeBetweenReCreate: number = 300;
   public useTimer: boolean = true;
+  /* Recurrent Strategy */
+  public useRecurrentStrategy: boolean = true;
+  public lastTimeCssCreateEnded: number = Date.now();
+  public cssCreateIsActive: boolean = false;
   private constructor() {}
 
   public static getInstance(): ValuesSingleton {

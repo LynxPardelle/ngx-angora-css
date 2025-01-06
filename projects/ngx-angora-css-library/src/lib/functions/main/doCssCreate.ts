@@ -12,7 +12,7 @@ import { send2CreateRules } from "./private_utilities/send2CreateRules";
 
 const values: ValuesSingleton = ValuesSingleton.getInstance();
 export const doCssCreate = {
-  async start(updateClasses2Create: string[] | null = null): Promise<void> {
+  async start(updateClasses2Create: string[] | null = null): Promise<number> {
     try {
       if (!values.sheet) {
         manage_sheet.checkSheet();
@@ -47,7 +47,7 @@ export const doCssCreate = {
         bpsStringed: bpsStringed,
       });
       send2CreateRules(classes2CreateStringed, bpsStringed);
-      const endTimeCSSCreate = performance.now();
+      const endTimeCSSCreate = await performance.now();
       console_log.consoleLog(
         "info",
         `Call to cssCreate() took ${
@@ -66,8 +66,10 @@ export const doCssCreate = {
             </p>
             `;
       }
+      return Date.now();
     } catch (err) {
       console_log.consoleLog("error", { err: err });
+      return Date.now();
     }
   },
 };
