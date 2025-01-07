@@ -3,11 +3,10 @@ import { RouterOutlet } from '@angular/router';
 import { NgxAngoraService } from '../../projects/ngx-angora-css-library/src/public-api';
 
 @Component({
-  selector: 'app-root',
-  standalone: true,
-  imports: [RouterOutlet],
-  templateUrl: './app.component.html',
-  styleUrl: './app.component.scss',
+    selector: 'app-root',
+    imports: [RouterOutlet],
+    templateUrl: './app.component.html',
+    styleUrl: './app.component.scss'
 })
 export class AppComponent implements OnInit {
   public combos: { [key: string]: string[] } = {
