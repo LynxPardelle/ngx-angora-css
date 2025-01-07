@@ -1,6 +1,6 @@
 {
   "name": "ngx-angora-css",
-  "version": "1.4.4",
+  "version": "1.4.5",
   "description": "Angora CSS is a library that provides a set of CSS classes to help you build modern web applications. It is based on the [Boostrap Expanded Features Library](https://github.com/LynxPardelle/bootstrap-expanded-features) and the [Bootstrap](https://getbootstrap.com/) framework. It is designed to be easy to use and customize. It is also designed to be responsive and mobile-first.",
   "author": "lynx-pardelle (https://lynxpardelle.com/)",
   "license": "MIT",
@@ -41,7 +41,6 @@
     "@angular/platform-server": "^17.1.0",
     "@angular/router": "^19.0.5",
     "@angular/ssr": "^17.1.2",
-    "ngx-angora-css": "1.4.4",
     "express": "^4.18.2",
     "rxjs": "~7.8.0",
     "tslib": "^2.8.1",
