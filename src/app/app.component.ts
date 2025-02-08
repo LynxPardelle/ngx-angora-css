@@ -1,10 +1,9 @@
 import { Component, OnInit, afterNextRender } from '@angular/core';
-import { RouterOutlet } from '@angular/router';
 import { NgxAngoraService } from '../../projects/ngx-angora-css-library/src/public-api';
 
 @Component({
     selector: 'app-root',
-    imports: [RouterOutlet],
+    imports: [],
     templateUrl: './app.component.html',
     styleUrl: './app.component.scss'
 })
