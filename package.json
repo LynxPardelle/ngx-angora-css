@@ -1,6 +1,6 @@
 {
   "name": "ngx-angora-css",
-  "version": "1.4.5",
+  "version": "1.4.6",
   "description": "Angora CSS is a library that provides a set of CSS classes to help you build modern web applications. It is based on the [Boostrap Expanded Features Library](https://github.com/LynxPardelle/bootstrap-expanded-features) and the [Bootstrap](https://getbootstrap.com/) framework. It is designed to be easy to use and customize. It is also designed to be responsive and mobile-first.",
   "author": "lynx-pardelle (https://lynxpardelle.com/)",
   "license": "MIT",
@@ -31,25 +31,25 @@
     "start-test-library": "ng serve --open --poll=2000"
   },
   "dependencies": {
-    "@angular/animations": "^19.1.2",
+    "@angular/animations": "^19.2.0",
     "@angular/common": "^19.2.0",
-    "@angular/compiler": "^19.0.5",
+    "@angular/compiler": "^19.2.0",
     "@angular/core": "^19.2.0",
-    "@angular/forms": "^19.0.5",
-    "@angular/platform-browser": "^19.0.5",
-    "@angular/platform-browser-dynamic": "^19.0.5",
-    "@angular/platform-server": "^19.1.2",
-    "@angular/router": "^19.0.5",
-    "@angular/ssr": "^19.1.3",
+    "@angular/forms": "^19.2.0",
+    "@angular/platform-browser": "^19.2.0",
+    "@angular/platform-browser-dynamic": "^19.2.0",
+    "@angular/platform-server": "^19.2.0",
+    "@angular/router": "^19.2.0",
+    "@angular/ssr": "^19.2.0",
     "express": "^4.18.2",
-    "ngx-angora-css": "^1.4.5",
-    "rxjs": "~7.8.0",
+    "ngx-angora-css": "^1.4.6",
+    "rxjs": "~7.8.1",
     "tslib": "^2.8.1",
     "zone.js": "~0.15.0"
   },
   "devDependencies": {
-    "@angular-devkit/build-angular": "^19.1.6",
-    "@angular/cli": "^19.1.3",
+    "@angular-devkit/build-angular": "^19.2.0",
+    "@angular/cli": "^19.2.0",
     "@angular/compiler-cli": "^19.2.0",
     "@types/express": "^5.0.0",
     "@types/jasmine": "~5.1.8",
@@ -57,10 +57,10 @@
     "jasmine-core": "~5.6.0",
     "karma": "~6.4.0",
     "karma-chrome-launcher": "~3.2.0",
-    "karma-coverage": "~2.2.0",
+    "karma-coverage": "~2.2.1",
     "karma-jasmine": "~5.1.0",
     "karma-jasmine-html-reporter": "~2.1.0",
-    "ng-packagr": "^19.0.1",
-    "typescript": "~5.8.2"
+    "ng-packagr": "^19.1.2",
+    "typescript": "~5.7.3"
   }
 }
