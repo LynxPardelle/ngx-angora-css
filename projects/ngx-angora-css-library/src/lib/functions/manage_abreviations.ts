@@ -1,64 +1,74 @@
 /* Singletons */
-import { ValuesSingleton } from "../singletons/valuesSingleton";
+import { ValuesSingleton } from '../singletons/valuesSingleton';
 /* Funtions */
-import { console_log } from "./console_log";
-import { cssCreate } from "./cssCreate";
-
+import { console_log } from './console_log';
+import { cssCreate } from './cssCreate';
+/* Types */
+import { TLogPartsOptions } from '../types';
+import { manage_cache } from './manage_cache';
 const values: ValuesSingleton = ValuesSingleton.getInstance();
+const log = (t: any, p?: TLogPartsOptions) => {
+  console_log.betterLogV1('manageAbreviations', t, p);
+};
+const multiLog = (toLog: [any, TLogPartsOptions?][]) => {
+  console_log.multiBetterLogV1('manageAbreviations', toLog);
+};
 export const manage_abreviations = {
-  pushAbreviationsValues(abreviationsValues: any): void {
+  pushAbreviationsValues(abreviationsValues: { [key: string]: string }): void {
     try {
       let prevIgnoredAbreviationsValues: string[] = [];
-      Object.keys(abreviationsValues).forEach((key) => {
+      Object.keys(abreviationsValues).forEach(key => {
         values.abreviationsValues[key] = abreviationsValues[key];
-        prevIgnoredAbreviationsValues = values.alreadyCreatedClasses.filter(
-          (aC: any) => {
-            return aC.includes(key);
-          }
-        );
+        prevIgnoredAbreviationsValues = Array.from(values.alreadyCreatedClasses).filter((aC: any) => {
+          return aC.includes(key);
+        });
       });
-      if (prevIgnoredAbreviationsValues.length > 0) {
-        cssCreate.cssCreate(prevIgnoredAbreviationsValues);
+      values.abreviationsValuesKeys = new Set(Object.keys(values.abreviationsValues));
+      if (values.cacheActive) {
+        manage_cache.clearAllNoneEssential();
       }
-    } catch (err) {
-      console_log.consoleLog("error", { err: err });
-    }
-  },
-  pushAbreviationsClasses(abreviationsClasses: any): void {
-    let prevIgnoredAbreviationsValues: string[] = [];
-    try {
-      Object.keys(abreviationsClasses).forEach((key) => {
-        values.abreviationsClasses[key] = abreviationsClasses[key];
-        prevIgnoredAbreviationsValues = values.alreadyCreatedClasses.filter(
-          (aC: any) => {
-            return aC.includes(key);
-          }
-        );
-      });
       if (prevIgnoredAbreviationsValues.length > 0) {
         cssCreate.cssCreate(prevIgnoredAbreviationsValues);
       } else {
         cssCreate.cssCreate();
       }
     } catch (err) {
-      console_log.consoleLog("error", { err: err });
+      console_log.consoleLog('error', { err: err });
+    }
+  },
+  pushAbreviationsClasses(abreviationsClasses: { [key: string]: string }): void {
+    let prevIgnoredAbreviationsValues: string[] = [];
+    try {
+      Object.keys(abreviationsClasses).forEach(key => {
+        values.abreviationsClasses[key] = abreviationsClasses[key];
+        prevIgnoredAbreviationsValues = Array.from(values.alreadyCreatedClasses).filter((aC: any) => {
+          return aC.includes(key);
+        });
+      });
+      values.abreviationsClassesKeys = new Set(Object.keys(values.abreviationsClasses));
+      if (values.cacheActive) {
+        manage_cache.clearAllNoneEssential();
+      }
+      if (prevIgnoredAbreviationsValues.length > 0) {
+        cssCreate.cssCreate(prevIgnoredAbreviationsValues);
+      } else {
+        cssCreate.cssCreate();
+      }
+    } catch (err) {
+      console_log.consoleLog('error', { err: err });
     }
   },
   getAbreviationsClasses(): any {
-    console_log.consoleLog("info", {
-      abreviationsClasses: values.abreviationsClasses,
-    });
+    log(values.abreviationsClasses, 'abreviationsClasses');
     return values.abreviationsClasses;
   },
   getAbreviationsValues(): any {
-    console_log.consoleLog("info", {
-      abreviationsValues: values.abreviationsValues,
-    });
+    log(values.abreviationsValues, 'abreviationsValues');
     return values.abreviationsValues;
   },
   updateAbreviationsClass(abreviationsClass: string, value: string): void {
     try {
-      if (values.abreviationsClasses[abreviationsClass.toString()]) {
+      if (values.abreviationsClasses[abreviationsClass]) {
         values.abreviationsClasses[abreviationsClass] = value;
         let classesToUpdate: string[] = [];
         for (let createdClass of values.alreadyCreatedClasses) {
@@ -66,16 +76,19 @@ export const manage_abreviations = {
             classesToUpdate.push(createdClass);
           }
         }
+        if (values.cacheActive) {
+          manage_cache.clearAllNoneEssential();
+        }
         if (classesToUpdate.length > 0) {
           cssCreate.cssCreate(classesToUpdate);
+        } else {
+          cssCreate.cssCreate();
         }
       } else {
-        throw new Error(
-          `There is no abreviationsClass named ${abreviationsClass}.`
-        );
+        throw new Error(`There is no abreviationsClass named ${abreviationsClass}.`);
       }
     } catch (err) {
-      console_log.consoleLog("error", { err: err });
+      console_log.consoleLog('error', { err: err });
     }
   },
   updateAbreviationsValue(abreviationsValue: string, value: string): void {
@@ -88,16 +101,19 @@ export const manage_abreviations = {
             classesToUpdate.push(createdClass);
           }
         }
+        if (values.cacheActive) {
+          manage_cache.clearAllNoneEssential();
+        }
         if (classesToUpdate.length > 0) {
           cssCreate.cssCreate(classesToUpdate);
+        } else {
+          cssCreate.cssCreate();
         }
       } else {
-        throw new Error(
-          `There is no abreviationsValue named ${abreviationsValue}.`
-        );
+        throw new Error(`There is no abreviationsValue named ${abreviationsValue}.`);
       }
     } catch (err) {
-      console_log.consoleLog("error", { err: err });
+      console_log.consoleLog('error', { err: err });
     }
   },
 };

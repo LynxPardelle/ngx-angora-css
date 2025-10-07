@@ -1,11 +1,16 @@
-import { Directive } from '@angular/core';
+import { Directive, EventEmitter, Input, OnInit, Output } from '@angular/core';
 
 @Directive({
-  selector: '[libItExists]',
-  standalone: true
+  selector: '[ankItExists]',
 })
-export class ItExistsDirective {
+export class ItExistsDirective implements OnInit {
+  @Input() exist!: boolean;
 
-  constructor() { }
+  @Output('ankItExists') initEvent: EventEmitter<any> = new EventEmitter();
 
+  ngOnInit() {
+    if (this.exist) {
+      setTimeout(() => this.initEvent.emit(), 10);
+    }
+  }
 }
