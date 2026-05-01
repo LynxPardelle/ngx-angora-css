@@ -107,4 +107,43 @@ describe('NgxAngoraService', () => {
     expect(report.failedClasses).toBe(0);
     expect(report.diagnostics.some(diagnostic => diagnostic.code === 'invalid-class-discovered')).toBeTrue();
   });
+
+  it('respects explicit false values for runtime boolean options', () => {
+    service.values.importantActive = true;
+    service.changeImportantActive(false);
+
+    service.values.isDebug = true;
+    service.changeDebugOption(false);
+
+    service.values.useTimer = true;
+    service.changeUseTimerOption(false);
+
+    expect(service.values.importantActive).toBeFalse();
+    expect(service.values.isDebug).toBeFalse();
+    expect(service.values.useTimer).toBeFalse();
+  });
+
+  it('toggles runtime boolean options when no explicit value is provided', () => {
+    service.values.importantActive = false;
+    service.values.isDebug = false;
+    service.values.useTimer = false;
+
+    service.changeImportantActive();
+    expect(service.values.importantActive).toBeTrue();
+
+    service.changeImportantActive();
+    expect(service.values.importantActive).toBeFalse();
+
+    service.changeDebugOption();
+    expect(service.values.isDebug).toBeTrue();
+
+    service.changeDebugOption();
+    expect(service.values.isDebug).toBeFalse();
+
+    service.changeUseTimerOption();
+    expect(service.values.useTimer).toBeTrue();
+
+    service.changeUseTimerOption();
+    expect(service.values.useTimer).toBeFalse();
+  });
 });

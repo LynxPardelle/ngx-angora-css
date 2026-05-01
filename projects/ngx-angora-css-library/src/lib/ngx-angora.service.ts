@@ -113,10 +113,9 @@ export class NgxAngoraService {
   public deleteColor = (color: string) => manage_colors.deleteColor(color);
   public clearAllColors = () => manage_colors.clearAllColors();
   /* Utility */
-  public changeImportantActive = (active: boolean) =>
-    utility_configurations.changeImportantActive((active = !this.importantActive));
-  public changeDebugOption = (active: boolean = !this.isDebug) => debugg_options.changeDebugOption(active);
-  public changeUseTimerOption = (active: boolean = !this.useTimer) => debugg_options.changeUseTimerOption(active);
+  public changeImportantActive = (active?: boolean) => utility_configurations.changeImportantActive(active);
+  public changeDebugOption = (active?: boolean) => debugg_options.changeDebugOption(active);
+  public changeUseTimerOption = (active?: boolean) => debugg_options.changeUseTimerOption(active);
   public setTimeBetweenReCreate = (time: number) => debugg_options.setTimeBetweenReCreate(time);
   public unbefysize = (value: string) => abreviation_traductors.unbefysize(value);
   public befysize = (value: string) => abreviation_traductors.befysize(value);

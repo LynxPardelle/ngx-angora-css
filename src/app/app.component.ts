@@ -39,6 +39,13 @@ type RuntimeBreakpoint = {
   value: string;
 };
 
+type TutorialStep = {
+  label: string;
+  title: string;
+  description: string;
+  code: string;
+};
+
 @Component({
   selector: 'app-root',
   imports: [ItExistsDirective],
@@ -86,43 +93,75 @@ export class AppComponent {
     ],
   };
 
+  public readonly tutorialSteps: TutorialStep[] = [
+    {
+      label: '01',
+      title: 'Install the package',
+      description: 'Add the Angular package, then import the service from the library public API.',
+      code: 'npm install ngx-angora-css',
+    },
+    {
+      label: '02',
+      title: 'Load the managed stylesheets',
+      description: 'Keep both stylesheet links present. The runtime inserts normal and responsive rules into them.',
+      code: '<link rel="stylesheet" href="assets/css/angora-styles.css" />\n<link rel="stylesheet" href="assets/css/angora-styles-responsive.css" />',
+    },
+    {
+      label: '03',
+      title: 'Register runtime tokens',
+      description: 'Push colors, breakpoints, aliases, and combos before the first creation pass.',
+      code: 'ank.pushColors({ brandAurora: "linear-gradient(135deg, #0f766e 0%, #38bdf8 100%)" });\nank.pushCombos({ Badge: ["ank-bg-brandAurora ank-c-white"] });',
+    },
+    {
+      label: '04',
+      title: 'Create CSS from classes',
+      description: 'Use ank-prefixed classes in templates, then call cssCreate after Angular renders the view.',
+      code: '<button class="ank-bg-brandAurora ank-c-fieldMist ank-p-0_75rem__1rem">Save</button>\nank.cssCreate();',
+    },
+  ];
+
   public combos: { [key: string]: string[] } = {
     Abtn: [
       'ank-borderWidth-VAL1DEF4pxDEF ank-m-VAL2DEF1rem__autoDEF ank-p-VAL3DEF0_5remDEF ank-rounded-VAL4DEF0_5remDEF',
     ],
     APage: ['ank-minHeight-100vh ank-bg-fieldMist ank-c-inkpulse ank-px-1rem ank-py-1_5rem'],
-    ALayout: ['ank-w-100per ank-maxWidth-96rem ank-mx-auto ank-d-flex ank-flexWrap-wrap ank-gap-1_5rem ank-alignItems-start'],
-    AShowcaseStack: ['ank-flex-1 ank-minWidth-22rem ank-d-grid ank-gap-1_25rem'],
-    AHero: ['ank-bg-white ank-rounded-1_75rem ank-p-2rem ank-d-grid ank-gap-1rem ank-borderWidth-1px ank-borderStyle-solid ank-borderColor-cloudLine ank-boxShadow-softShadow'],
-    ASection: ['ank-bg-white ank-rounded-1_5rem ank-p-1_5rem ank-d-grid ank-gap-1rem ank-borderWidth-1px ank-borderStyle-solid ank-borderColor-cloudLine ank-boxShadow-softShadow'],
-    ASectionHeader: ['ank-d-grid ank-gap-0_35rem'],
-    APanelStack: ['ank-flex-1 ank-minWidth-20rem ank-maxWidth-28rem ank-d-grid ank-gap-1rem'],
-    APanel: ['ank-bg-white ank-c-inkpulse ank-rounded-1_5rem ank-p-1_5rem ank-d-grid ank-gap-1rem ank-borderWidth-1px ank-borderStyle-solid ank-borderColor-cloudLine ank-boxShadow-softShadow'],
+    ALayout: ['ank-w-100per ank-maxWidth-96rem ank-mx-auto ank-d-flex ank-flexWrap-wrap ank-gap-1_5rem ank-alignItems-start ank-bxs-borderMINbox'],
+    AShowcaseStack: ['ank-flex-1 ank-flexBasis-22rem ank-wmn-0 ank-d-grid ank-gap-1_25rem'],
+    AHero: ['ank-w-100per ank-wmn-0 ank-bxs-borderMINbox ank-bg-white ank-rounded-1_75rem ank-p-2rem ank-d-grid ank-gap-1rem ank-borderWidth-1px ank-borderStyle-solid ank-borderColor-cloudLine ank-boxShadow-softShadow'],
+    ASection: ['ank-w-100per ank-wmn-0 ank-bxs-borderMINbox ank-bg-white ank-rounded-1_5rem ank-p-1_5rem ank-d-grid ank-gap-1rem ank-borderWidth-1px ank-borderStyle-solid ank-borderColor-cloudLine ank-boxShadow-softShadow'],
+    ASectionHeader: ['ank-wmn-0 ank-d-grid ank-gap-0_35rem'],
+    APanelStack: ['ank-flex-1 ank-flexBasis-20rem ank-wmn-0 ank-maxWidth-28rem ank-d-grid ank-gap-1rem'],
+    APanel: ['ank-w-100per ank-wmn-0 ank-bxs-borderMINbox ank-bg-white ank-c-inkpulse ank-rounded-1_5rem ank-p-1_5rem ank-d-grid ank-gap-1rem ank-borderWidth-1px ank-borderStyle-solid ank-borderColor-cloudLine ank-boxShadow-softShadow'],
     ALabel: ['ank-m-0 ank-c-signalMint ank-fontSize-0_8rem ank-letterSpacing-0_18em ank-textTransform-uppercase ank-opacity-0_85 ank-fontWeight-700'],
     AHeroCopy: ['ank-m-0 ank-c-inkpulse ank-lineHeight-1_65 ank-maxWidth-58ch ank-opacity-0_85'],
-    AButtonGallery: ['ank-display-grid ank-gridTemplateColumns-1fr ank-gap-1rem ank-gridTemplateColumns-stage-repeatSD2COM__1frED ank-gridTemplateColumns-billboard-repeatSD3COM__1frED'],
-    AShowcaseCard: ['ank-bg-fieldMist ank-rounded-1rem ank-p-1rem ank-d-grid ank-gap-0_75rem ank-borderWidth-1px ank-borderStyle-solid ank-borderColor-cloudLine'],
+    ATutorialGrid: ['ank-wmn-0 ank-display-grid ank-gridTemplateColumns-1fr ank-gap-1rem ank-gridTemplateColumns-stage-repeatSD2COM__1frED'],
+    ATutorialStep: ['ank-wmn-0 ank-bxs-borderMINbox ank-bg-fieldMist ank-rounded-1rem ank-p-1rem ank-d-grid ank-gap-0_75rem ank-borderWidth-1px ank-borderStyle-solid ank-borderColor-cloudLine'],
+    AStepHead: ['ank-wmn-0 ank-d-flex ank-gap-0_75rem ank-alignItems-center'],
+    AStepNumber: ['ank-d-inlineMINflex ank-alignItems-center ank-justifyContent-center ank-w-2_35rem ank-h-2_35rem ank-rounded-pillRadius ank-bg-inkpulse ank-c-fieldMist ank-fontWeight-800'],
+    ACodeBlock: ['ank-wmn-0 ank-maxWidth-100per ank-bxs-borderMINbox ank-m-0 ank-p-1rem ank-rounded-0_85rem ank-bg-inkpulse ank-c-fieldMist ank-whiteSpace-preMINwrap ank-overflow-auto ank-fontSize-0_84rem ank-lineHeight-1_45'],
+    AButtonGallery: ['ank-wmn-0 ank-display-grid ank-gridTemplateColumns-1fr ank-gap-1rem ank-gridTemplateColumns-stage-repeatSD2COM__1frED ank-gridTemplateColumns-billboard-repeatSD3COM__1frED'],
+    AShowcaseCard: ['ank-wmn-0 ank-bxs-borderMINbox ank-bg-fieldMist ank-rounded-1rem ank-p-1rem ank-d-grid ank-gap-0_75rem ank-borderWidth-1px ank-borderStyle-solid ank-borderColor-cloudLine'],
     AShowcaseLabel: ['ank-m-0 ank-c-inkpulse ank-fontSize-0_72rem ank-letterSpacing-0_14em ank-textTransform-uppercase ank-fontWeight-700 ank-opacity-0_75'],
-    APreviewSurface: ['ank-bg-fieldMist ank-rounded-1rem ank-p-1rem ank-d-grid ank-gap-0_75rem ank-borderWidth-1px ank-borderStyle-solid ank-borderColor-cloudLine'],
+    APreviewSurface: ['ank-wmn-0 ank-bxs-borderMINbox ank-bg-fieldMist ank-rounded-1rem ank-p-1rem ank-d-grid ank-gap-0_75rem ank-borderWidth-1px ank-borderStyle-solid ank-borderColor-cloudLine'],
     AActionButton: ['ank-bg-brandAurora ank-c-fieldMist ank-p-0_85rem__1_1rem ank-rounded-pillRadius ank-borderWidth-1px ank-borderStyle-solid ank-borderColor-cloudLine ank-fontWeight-800 ank-transformHover-translateYSDMIN2pxED ank-transformActive-scaleSD0_98ED ank-boxShadowHover-0__12px__28px__rgbaSD15COM23COM42COM0_18ED'],
     AFormButton: ['ank-bg-fieldMist ank-c-inkpulse ank-p-0_85rem__1rem ank-rounded-pillRadius ank-borderWidth-1px ank-borderStyle-solid ank-borderColor-cloudLine ank-fontWeight-700'],
     AChipRow: ['ank-d-flex ank-flexWrap-wrap ank-gap-0_5rem ank-alignItems-center'],
-    AChip: ['ank-d-inlineMINblock ank-bg-white ank-c-inkpulse ank-rounded-pillRadius ank-px-0_65rem ank-py-0_3rem ank-borderWidth-1px ank-borderStyle-solid ank-borderColor-cloudLine ank-fontSize-0_78rem'],
-    AResponsiveGrid: ['ank-display-grid ank-gridTemplateColumns-1fr ank-gap-1rem ank-gridTemplateColumns-stage-repeatSD2COM__1frED ank-gridTemplateColumns-billboard-repeatSD3COM__1frED'],
-    AResponsiveCard: ['ank-bg-fieldMist ank-rounded-1rem ank-p-1rem ank-d-grid ank-gap-0_65rem ank-borderWidth-1px ank-borderStyle-solid ank-borderColor-cloudLine'],
-    AMetricGrid: ['ank-d-flex ank-flexWrap-wrap ank-gap-0_75rem'],
-    AMetricCard: ['ank-flex-1 ank-minWidth-8rem ank-bg-fieldMist ank-rounded-1rem ank-p-1rem ank-d-grid ank-gap-0_25rem ank-borderWidth-1px ank-borderStyle-solid ank-borderColor-cloudLine'],
+    AChip: ['ank-wmn-0 ank-maxWidth-100per ank-bxs-borderMINbox ank-overflow-auto ank-d-inlineMINblock ank-bg-white ank-c-inkpulse ank-rounded-pillRadius ank-px-0_65rem ank-py-0_3rem ank-borderWidth-1px ank-borderStyle-solid ank-borderColor-cloudLine ank-fontSize-0_78rem'],
+    AResponsiveGrid: ['ank-wmn-0 ank-display-grid ank-gridTemplateColumns-1fr ank-gap-1rem ank-gridTemplateColumns-stage-repeatSD2COM__1frED ank-gridTemplateColumns-billboard-repeatSD3COM__1frED'],
+    AResponsiveCard: ['ank-wmn-0 ank-bxs-borderMINbox ank-bg-fieldMist ank-rounded-1rem ank-p-1rem ank-d-grid ank-gap-0_65rem ank-borderWidth-1px ank-borderStyle-solid ank-borderColor-cloudLine'],
+    AMetricGrid: ['ank-wmn-0 ank-d-flex ank-flexWrap-wrap ank-gap-0_75rem'],
+    AMetricCard: ['ank-flex-1 ank-wmn-0 ank-minWidth-8rem ank-bxs-borderMINbox ank-bg-fieldMist ank-rounded-1rem ank-p-1rem ank-d-grid ank-gap-0_25rem ank-borderWidth-1px ank-borderStyle-solid ank-borderColor-cloudLine'],
     AMeta: ['ank-d-grid ank-gap-0_35rem ank-fontSize-0_92rem'],
     AList: ['ank-listStyle-none ank-p-0 ank-m-0 ank-d-grid ank-gap-0_75rem'],
-    ADiagnosticItem: ['ank-bg-white ank-rounded-1rem ank-p-1rem ank-borderLeftWidth-4px ank-borderLeftStyle-solid ank-borderLeftColor-goldenrod ank-borderWidth-1px ank-borderStyle-solid ank-borderColor-cloudLine'],
-    AValidateRow: ['ank-d-flex ank-flexWrap-wrap ank-gap-0_75rem ank-alignItems-center'],
-    AInput: ['ank-flex-1 ank-w-100per ank-bg-white ank-c-inkpulse ank-p-1rem ank-rounded-1rem ank-borderWidth-1px ank-borderStyle-solid ank-borderColor-cloudLine'],
-    AValidationBox: ['ank-mt-1rem ank-p-1rem ank-rounded-1_25rem ank-borderWidth-1px ank-borderStyle-solid ank-d-grid ank-gap-0_75rem'],
+    ADiagnosticItem: ['ank-wmn-0 ank-bxs-borderMINbox ank-bg-white ank-rounded-1rem ank-p-1rem ank-borderWidth-1px ank-borderStyle-solid ank-borderColor-goldenrod ank-d-grid ank-gap-0_5rem'],
+    AValidateRow: ['ank-wmn-0 ank-d-flex ank-flexWrap-wrap ank-gap-0_75rem ank-alignItems-center'],
+    AInput: ['ank-flex-1 ank-w-100per ank-wmn-0 ank-bxs-borderMINbox ank-bg-white ank-c-inkpulse ank-p-1rem ank-rounded-1rem ank-borderWidth-1px ank-borderStyle-solid ank-borderColor-cloudLine'],
+    AValidationBox: ['ank-wmn-0 ank-bxs-borderMINbox ank-mt-1rem ank-p-1rem ank-rounded-1_25rem ank-borderWidth-1px ank-borderStyle-solid ank-d-grid ank-gap-0_75rem'],
     AValidationHead: ['ank-d-flex ank-flexWrap-wrap ank-gap-0_75rem ank-justifyContent-spaceMINbetween ank-alignItems-center'],
     ABadge: ['ank-rounded-99rem ank-px-0_75rem ank-py-0_3rem ank-fontWeight-700 ank-textTransform-uppercase ank-letterSpacing-0_08em ank-fontSize-0_74rem ank-c-white'],
-    ARulePreview: ['ank-m-0 ank-p-1rem ank-rounded-1rem ank-bg-black ank-c-white ank-whiteSpace-preMINwrap ank-overflow-auto ank-fontSize-0_85rem ank-lineHeight-1_5'],
-    ASummary: ['ank-d-flex ank-flexWrap-wrap ank-gap-0_75rem ank-fontSize-0_92rem'],
-    ASampleItem: ['ank-bg-fieldMist ank-rounded-1rem ank-p-0_85rem ank-d-flex ank-flexWrap-wrap ank-gap-0_75rem ank-justifyContent-spaceMINbetween ank-alignItems-center ank-borderWidth-1px ank-borderStyle-solid ank-borderColor-cloudLine'],
+    ARulePreview: ['ank-wmn-0 ank-maxWidth-100per ank-bxs-borderMINbox ank-m-0 ank-p-1rem ank-rounded-1rem ank-bg-black ank-c-white ank-whiteSpace-preMINwrap ank-overflow-auto ank-fontSize-0_85rem ank-lineHeight-1_5'],
+    ASummary: ['ank-wmn-0 ank-d-flex ank-flexWrap-wrap ank-gap-0_75rem ank-fontSize-0_92rem'],
+    ASampleItem: ['ank-wmn-0 ank-bxs-borderMINbox ank-bg-fieldMist ank-rounded-1rem ank-p-0_85rem ank-d-flex ank-flexWrap-wrap ank-gap-0_75rem ank-justifyContent-spaceMINbetween ank-alignItems-center ank-borderWidth-1px ank-borderStyle-solid ank-borderColor-cloudLine'],
     ADirectiveStatus: ['ank-d-flex ank-flexWrap-wrap ank-gap-0_75rem ank-alignItems-center'],
     AMuted: ['ank-m-0 ank-opacity-0_8'],
   };

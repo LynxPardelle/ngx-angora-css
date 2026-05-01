@@ -1,88 +1,74 @@
-# NgxAngoraCss
+# Ngx Angora CSS
 
-## 🧐 About
+Ngx Angora CSS is an Angular runtime CSS utility library. It scans rendered DOM classes, parses `ank-*` utility tokens, and inserts the generated CSS rules into managed stylesheets at runtime.
 
-NgxAngoraCss is a css framework made in js that creates all the css styles from your classes dynamically in the load of your pages, that mean that your users will only need to download the js and not a css file of 50mb+ and speed up you charge with a simple task that only consumes a few memory of the ram of the user.
+## Required Stylesheets
 
-## 🏁 Getting Started
+The runtime needs two linked stylesheets so it can insert normal and responsive rules:
 
-You can check the full tutorial in the [Angora CSS guide](https://lynx-bef.vercel.app/), but you will need to change the class prefix and stylesheet names to the current Angular library values. For example, use `ank` instead of `bef` and `angora-styles.css` instead of the previous stylesheet name.
+```html
+<link rel="stylesheet" href="assets/css/angora-styles.css" />
+<link rel="stylesheet" href="assets/css/angora-styles-responsive.css" />
+```
 
-We will have a special page for the documentation of the library and the new classes that are on the library soon.
+The default stylesheet names are configured in `ValuesSingleton` as `angora-styles.css` and `angora-styles-responsive.css`.
 
-## 🧪 Testing
+## Basic Usage
 
-From the workspace root you can run the library and the demo app independently:
+```typescript
+import { afterNextRender, Component } from '@angular/core';
+import { NgxAngoraService } from 'ngx-angora-css';
+
+@Component({
+  selector: 'app-root',
+  template: `<button class="ank-bg-primary ank-c-white ank-p-0_75rem__1rem">Save</button>`,
+})
+export class AppComponent {
+  constructor(private readonly ank: NgxAngoraService) {
+    afterNextRender(() => this.ank.cssCreate());
+  }
+}
+```
+
+## Runtime Extension API
+
+```typescript
+ank.pushColors({ brandAurora: 'linear-gradient(135deg, #0f766e 0%, #38bdf8 100%)' });
+ank.pushBPS([{ bp: 'stage', value: '1080px', class2Create: '' }]);
+ank.pushAbreviationsValues({ pillRadius: '999px' });
+ank.pushAbreviationsClasses({ clusterGap: 'ank-gap' });
+ank.pushCombos({ Badge: ['ank-bg-brandAurora ank-c-white ank-rounded-pillRadius'] });
+```
+
+## Validation And Diagnostics
+
+```typescript
+const validation = ank.validateClass('ank-color-red');
+const report = ank.validateClasses(['ank-color-red', 'ank-color-md-red', 'ank-']);
+```
+
+```typescript
+const creationReport = ank.getLastCssCreateReport();
+ank.clearCssCreateReport();
+```
+
+Validation results include `valid`, `invalid`, or `duplicate` status, a generated rule preview when available, and diagnostics that explain malformed classes.
+
+Creation reports include processed, created, skipped, and failed counters plus diagnostics such as `invalid-class-structure`, `invalid-class-discovered`, `invalid-rule-fragment`, and `stylesheet-missing`.
+
+## Testing
+
+From the workspace root:
 
 ```bash
 npm run test:library
 npm run test:app
 npm run test:all
+npm run build
 ```
 
-If you want to validate the library while rendering the Angular demo app, use:
+The demo app imports the library source directly, so it exercises real class discovery, combo parsing, validation, diagnostics, and stylesheet insertion.
 
-```bash
-npm run start-test-library
-```
-
-The demo app imports the library source directly, so it exercises real class discovery, combo parsing, and stylesheet insertion.
-
-## 🔎 Diagnostics
-
-`NgxAngoraService` now exposes the last CSS creation report:
-
-```typescript
-const report = ankService.getLastCssCreateReport();
-ankService.clearCssCreateReport();
-```
-
-The report contains:
-
-- `processedClasses`, `createdClasses`, `skippedClasses`, and `failedClasses`.
-- `lastSuccessfulClassName` and `lastFailedClassName`.
-- A `diagnostics` array with stage, code, message, optional class name, and suggested fix.
-
-This is useful when a malformed class should be skipped instead of breaking the full CSS creation run.
-
-## ✅ Validation
-
-`NgxAngoraService` now exposes preflight validation helpers:
-
-```typescript
-const validation = ankService.validateClass('ank-color-red');
-const report = ankService.validateClasses(['ank-color-red', 'ank-color-md-red', 'ank-']);
-```
-
-Validation results include:
-
-- `status`: `valid`, `invalid`, or `duplicate`.
-- `generatedRule`: the CSS preview that would be created for valid classes.
-- `diagnostics`: the warnings that explain why a class is invalid.
-
-Use `{ checkDuplicates: true }` when you want validation to tell you that a class is already present in the managed stylesheet or already tracked in memory.
-
-## 🛠 Troubleshooting
-
-Common diagnostics and what they usually mean:
-
-- `invalid-class-discovered`: a class starting with `ank` was found in the DOM without a property token, for example `ank-`.
-- `invalid-class-structure`: the parser received a malformed class and skipped it before trying to build CSS.
-- `missing-property-token`: the parser or property joiner could not resolve the CSS property to generate.
-- `invalid-rule-fragment` or `invalid-css-rule-shape`: the class could be parsed partially, but it did not produce a valid CSS block.
-- `stylesheet-missing`: the target stylesheet was not available when CSS creation started.
-
-Recommended troubleshooting flow:
-
-1. Call `getLastCssCreateReport()` after `cssCreate()`.
-2. Check `diagnostics` for the first warning or error.
-3. Fix malformed class names before retrying.
-4. Ensure both managed stylesheets are available before automatic CSS generation starts.
-
-## ✍️ Authors
+## Author
 
 Lynx Pardelle
-
-## Support this library
-
-[Buy Me a Coffe](https://www.buymeacoffee.com/lynxpardelle)

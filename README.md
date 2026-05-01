@@ -1,18 +1,105 @@
-# NgxAngoraCss
+# Ngx Angora CSS
 
-## 🧐 About
+Ngx Angora CSS is an Angular runtime CSS utility library. It scans rendered DOM classes, parses `ank-*` utility tokens, and inserts the generated CSS rules into managed stylesheets at runtime.
 
-NgxAngoraCss is a css framework made in js that creates all the css styles from your classes dynamically in the load of your pages, that mean that your users will only need to download the js and not a css file of 50mb+ and speed up you charge with a simple task that only consumes a few memory of the ram of the user.
+The goal is to ship a small JavaScript library instead of a large prebuilt utility stylesheet. Applications keep two stylesheet targets available, then the library creates only the rules that are actually used on the page.
 
-## 🏁 Getting Started
+## How It Works
 
-You can check the full tutorial in the [Angora CSS guide](https://lynx-bef.vercel.app/), but you will need to change the class prefix and stylesheet names to the current Angular library values. For example, use `ank` instead of `bef` and `angora-styles.css` instead of the previous stylesheet name.
+1. Add the managed stylesheets to the Angular app.
+2. Render classes that use the `ank` prefix.
+3. Register optional runtime colors, breakpoints, aliases, and combos.
+4. Call `cssCreate()` after Angular has rendered the view.
+5. Inspect diagnostics when a class is skipped or malformed.
 
-We will have a special page for the documentation of the library and the new classes that are on the library soon.
+```html
+<link rel="stylesheet" href="assets/css/angora-styles.css" />
+<link rel="stylesheet" href="assets/css/angora-styles-responsive.css" />
+```
 
-## 🧪 Testing
+```typescript
+import { afterNextRender, Component } from '@angular/core';
+import { NgxAngoraService } from 'ngx-angora-css';
 
-The workspace now exposes explicit scripts for both the demo app and the library:
+@Component({
+  selector: 'app-root',
+  template: `<button class="ank-bg-primary ank-c-white ank-p-0_75rem__1rem">Save</button>`,
+})
+export class AppComponent {
+  constructor(private readonly ank: NgxAngoraService) {
+    afterNextRender(() => this.ank.cssCreate());
+  }
+}
+```
+
+## Class Shape
+
+Most classes follow this shape:
+
+```text
+ank-property-value
+```
+
+Examples:
+
+```html
+<div class="ank-d-flex ank-gap-1rem ank-bg-white ank-c-black"></div>
+<button class="ank-bgHover-primary ank-transformActive-scaleSD0_98ED"></button>
+<section class="ank-gridTemplateColumns-md-repeatSD2COM__1frED"></section>
+```
+
+The parser supports:
+
+- property aliases such as `ank-c-red` for `color`.
+- encoded values for spaces, punctuation, selectors, and functions.
+- pseudo states such as hover, focus, and active.
+- responsive breakpoint tokens.
+- selector targeting with `SEL__`.
+- runtime combos for reusable class recipes.
+
+## Runtime Extension API
+
+`NgxAngoraService` exposes registry methods for extending the runtime:
+
+```typescript
+ank.pushColors({ brandAurora: 'linear-gradient(135deg, #0f766e 0%, #38bdf8 100%)' });
+ank.pushBPS([{ bp: 'stage', value: '1080px', class2Create: '' }]);
+ank.pushAbreviationsValues({ pillRadius: '999px' });
+ank.pushAbreviationsClasses({ clusterGap: 'ank-gap' });
+ank.pushCombos({ Badge: ['ank-bg-brandAurora ank-c-white ank-rounded-pillRadius'] });
+```
+
+## Validation And Diagnostics
+
+Use validation before creation when accepting user-entered or generated class names:
+
+```typescript
+const single = ank.validateClass('ank-color-red');
+const batch = ank.validateClasses(['ank-color-red', 'ank-color-md-red', 'ank-']);
+```
+
+After `cssCreate()`, inspect the last creation report:
+
+```typescript
+const report = ank.getLastCssCreateReport();
+ank.clearCssCreateReport();
+```
+
+The report includes processed, created, skipped, and failed counters plus diagnostics such as `invalid-class-structure`, `invalid-class-discovered`, `invalid-rule-fragment`, and `stylesheet-missing`.
+
+## Demo App
+
+Run the tutorial/demo app:
+
+```bash
+npm start
+```
+
+The app imports the library source directly from `projects/ngx-angora-css-library/src/public-api`, so it is the fastest place to validate class parsing, combo expansion, stylesheet insertion, validation, diagnostics, and responsive rule creation together.
+
+## Testing
+
+Run the library and app tests independently or together:
 
 ```bash
 npm run test:library
@@ -20,48 +107,16 @@ npm run test:app
 npm run test:all
 ```
 
-Use the app to validate the library in a real Angular render flow:
+Run a production build:
 
 ```bash
-npm run start-test-library
+npm run build
 ```
 
-The demo app imports the library source directly from `projects/ngx-angora-css-library/src/public-api`, so it is the fastest way to verify class parsing, combo creation, and stylesheet rule insertion together.
-
-## 🔎 Diagnostics
-
-The library now stores a CSS creation report for the last run. You can inspect it from `NgxAngoraService`:
-
-```typescript
-const report = ankService.getLastCssCreateReport();
-ankService.clearCssCreateReport();
-```
-
-The report includes:
-
-- Processed, created, skipped, and failed class counters.
-- The last successful and failed class names.
-- Structured diagnostics with codes such as `invalid-class-structure`, `invalid-class-discovered`, `invalid-rule-fragment`, and `stylesheet-missing`.
-
-This makes it easier to understand why a class was skipped without stopping the whole CSS creation flow.
-
-## ✅ Validation
-
-You can also preflight classes before calling `cssCreate()`:
-
-```typescript
-const single = ankService.validateClass('ank-color-red');
-const batch = ankService.validateClasses(['ank-color-red', 'ank-color-md-red', 'ank-']);
-```
-
-Each validation result tells you whether the class is `valid`, `invalid`, or `duplicate`, includes any diagnostics, and returns the generated rule preview when the class can be created.
-
-The demo app now includes a live report panel for the last `cssCreate()` run and a validation panel for quick manual checks while you test the library with Angular.
-
-## ✍️ Authors
+## Author
 
 Lynx Pardelle
 
-## Support this library
+## Support
 
-[Buy Me a Coffe](https://www.buymeacoffee.com/lynxpardelle)
+[Buy Me a Coffee](https://www.buymeacoffee.com/lynxpardelle)

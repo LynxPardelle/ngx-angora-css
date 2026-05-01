@@ -71,6 +71,24 @@ describe('AppComponent', () => {
     expect(fixture.nativeElement.textContent).toContain('Validate a class before creation');
   }));
 
+  it('renders guided tutorial copy and an accessible validation input label', fakeAsync(() => {
+    const fixture = TestBed.createComponent(AppComponent);
+
+    fixture.detectChanges();
+    tick();
+    fixture.detectChanges();
+
+    const host = fixture.nativeElement as HTMLElement;
+    const label = host.querySelector('label[for="validationCandidate"]');
+    const input = host.querySelector('#validationCandidate');
+
+    expect(host.textContent).toContain('Start here');
+    expect(host.textContent).toContain('Install the package');
+    expect(host.textContent).toContain('Load the managed stylesheets');
+    expect(label?.textContent).toContain('Class to validate');
+    expect(input).toBeTruthy();
+  }));
+
   it('creates CSS for validation states after the candidate changes', fakeAsync(() => {
     const fixture = TestBed.createComponent(AppComponent);
     const app = fixture.componentInstance;

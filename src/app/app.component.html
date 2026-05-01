@@ -3,10 +3,10 @@
     <section class="AShowcaseStack">
       <section class="AHero">
         <p class="ALabel">Dynamic CSS runtime</p>
-        <h1 class="ank-m-0 ank-c-inkpulse ank-fontSize-2_8rem ank-lineHeight-1_05">Angora CSS capability lab</h1>
+        <h1 class="ank-m-0 ank-c-inkpulse ank-fontSize-2_8rem ank-lineHeight-1_05">Angora CSS tutorial lab</h1>
         <p class="AHeroCopy">
-          This demo turns the Angular app into a broad tour of runtime colors, responsive breakpoints, selector
-          targeting, combo values, pseudo states, diagnostics, and Angular-only directive behavior.
+          Learn the core runtime loop: load the managed stylesheets, register tokens, write ank classes, and inspect
+          the CSS rules that the library creates from the DOM.
         </p>
 
         <div class="AChipRow">
@@ -16,6 +16,31 @@
         </div>
 
         <button type="button" class="AActionButton" (click)="cssCreate()">Re-run cssCreate()</button>
+      </section>
+
+      <section class="ASection">
+        <div class="ASectionHeader">
+          <p class="ALabel">Start here</p>
+          <h2 class="ank-m-0 ank-fontSize-1_45rem">Use the library in four steps</h2>
+          <p class="AMuted">
+            This is the minimum path a new Angular app needs before the richer examples below start to make sense.
+          </p>
+        </div>
+
+        <div class="ATutorialGrid">
+          @for (step of tutorialSteps; track step.label) {
+            <article class="ATutorialStep">
+              <div class="AStepHead">
+                <span class="AStepNumber">{{ step.label }}</span>
+                <div class="ank-d-grid ank-gap-0_25rem">
+                  <h3 class="ank-m-0 ank-fontSize-1_05rem">{{ step.title }}</h3>
+                  <p class="AMuted">{{ step.description }}</p>
+                </div>
+              </div>
+              <pre class="ACodeBlock"><code>{{ step.code }}</code></pre>
+            </article>
+          }
+        </div>
       </section>
 
       <section class="ASection">
@@ -252,10 +277,7 @@
         @if (cssCreateReport.diagnostics.length > 0) {
           <ul class="AList">
             @for (diagnostic of cssCreateReport.diagnostics; track $index) {
-              <li
-                class="ADiagnosticItem"
-                [class.ank-borderLeftColor-indianred]="diagnostic.severity === 'error'"
-              >
+              <li class="ADiagnosticItem" [class.ank-borderColor-indianred]="diagnostic.severity === 'error'">
                 <div class="AValidationHead">
                   <strong>{{ diagnostic.code }}</strong>
                   <span>{{ diagnostic.stage }}</span>
@@ -277,8 +299,10 @@
         <h2 class="ank-m-0 ank-fontSize-1_35rem">Validate a class before creation</h2>
 
         <div class="AValidateRow">
+          <label class="ank-fontWeight-700" for="validationCandidate">Class to validate</label>
           <input
             #candidateInput
+            id="validationCandidate"
             class="AInput"
             [value]="validationCandidate"
             placeholder="ank-color-signalMint"
