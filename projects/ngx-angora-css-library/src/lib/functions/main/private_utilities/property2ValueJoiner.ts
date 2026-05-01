@@ -1,10 +1,35 @@
 /* Singletons */
 import { ValuesSingleton } from '../../../singletons/valuesSingleton';
 /* Functions */
+import { css_create_diagnostics } from '../../../functions/css_create_diagnostics';
 import { css_camel } from '../../css-camel';
 import { manage_cache } from '../../manage_cache';
 import { btnCreator } from './btnCreator';
+import { propertyNValueCorrector } from './propertyNValueCorrector';
 const values: ValuesSingleton = ValuesSingleton.getInstance();
+
+const SURFACE_BACKGROUND_PROPERTIES = new Set([
+  'background',
+  'background-color',
+  'background-image',
+  'background-position',
+  'background-size',
+  'background-repeat',
+  'background-origin',
+  'background-clip',
+  'background-attachment',
+]);
+
+const buildPropertyFragment = (propertyName: string, value: string, selector: string): string => {
+  if (
+    SURFACE_BACKGROUND_PROPERTIES.has(propertyName) ||
+    (typeof value === 'string' && value.includes('gradient') && ['color', 'border-color'].includes(propertyName))
+  ) {
+    return propertyNValueCorrector(propertyName, value, selector);
+  }
+
+  return `${propertyName}:${value};`;
+};
 
 /**
  * Pre-defined CSS rule templates for common patterns
@@ -80,17 +105,33 @@ export const property2ValueJoiner = (
   class2CreateSplited: string[],
   class2Create: string,
   propertyValues: string[] = [''],
-  specify: string = ''
+  specify: string = '',
+  selector: string = ''
 ): string => {
   // Early validation
-  if (!property && !class2CreateSplited[1]) {
+  if (typeof property !== 'string' || (!property && !class2CreateSplited[1])) {
+    css_create_diagnostics.addDiagnostic({
+      code: 'missing-property-token',
+      severity: 'warning',
+      stage: 'property2ValueJoiner',
+      className: class2Create,
+      message: 'Skipped CSS rule generation because the property token is missing.',
+      details: {
+        property,
+        class2CreateSplited,
+      },
+      suggestedFix: 'Make sure the class contains a valid property segment before building CSS rules.',
+      recoverable: true,
+    });
     return '';
   }
+
+  const normalizedPropertyValues = Array.isArray(propertyValues) && propertyValues.length > 0 ? propertyValues : [''];
 
   // Check cache first for instant response
   let cacheKey: string | undefined;
   if (values.cacheActive) {
-    cacheKey = `${property}|${class2CreateSplited.join('-')}|${class2Create}|${propertyValues.join(',')}|${specify}`;
+    cacheKey = `${property}|${class2CreateSplited.join('-')}|${class2Create}|${normalizedPropertyValues.join(',')}|${specify}|${selector}`;
     const cachedResult = values.propertyJoinerCache.get(cacheKey);
     if (cachedResult !== undefined) {
       return cachedResult;
@@ -104,15 +145,15 @@ export const property2ValueJoiner = (
     const cssNameParsed = values.cssNamesParsed[property];
 
     if (typeof cssNameParsed === 'string') {
-      result = CSS_TEMPLATES.single(specify, cssNameParsed, propertyValues[0]);
+      result = CSS_TEMPLATES.multiple(specify, [buildPropertyFragment(cssNameParsed, normalizedPropertyValues[0], selector)]);
     } else {
       // Optimized array processing with pre-allocated array
       const properties: string[] = [];
       const length = cssNameParsed.length;
 
       for (let i = 0; i < length; i++) {
-        const value = propertyValues[i] || propertyValues[0] || '';
-        properties.push(`${cssNameParsed[i]}:${value};`);
+        const value = normalizedPropertyValues[i] || normalizedPropertyValues[0] || '';
+        properties.push(buildPropertyFragment(cssNameParsed[i], value, selector));
       }
 
       result = CSS_TEMPLATES.multiple(specify, properties);
@@ -121,22 +162,26 @@ export const property2ValueJoiner = (
     // Optimized property type detection
     let propertyType = '';
 
-    const secondElement = class2CreateSplited[1];
+    const secondElement = typeof class2CreateSplited[1] === 'string' ? class2CreateSplited[1] : '';
 
     // Use startsWith for most efficient prefix matching
-    if (secondElement.startsWith('btnOutline')) propertyType = 'btnOutline';
-    if (secondElement.startsWith('btn')) propertyType = 'btn';
-    if (secondElement.startsWith('link')) propertyType = 'link';
+    if (secondElement.startsWith('btnOutline')) {
+      propertyType = 'btnOutline';
+    } else if (secondElement.startsWith('btn')) {
+      propertyType = 'btn';
+    } else if (secondElement.startsWith('link')) {
+      propertyType = 'link';
+    }
     if (propertyType === 'link') {
-      result = CSS_TEMPLATES.link(specify, propertyValues[0]);
+      result = CSS_TEMPLATES.link(specify, normalizedPropertyValues[0]);
     } else if (propertyType === 'btnOutline') {
-      result = btnCreator(class2Create, specify, propertyValues[0], propertyValues[1] || '', true);
+      result = btnCreator(class2Create, specify, normalizedPropertyValues[0], normalizedPropertyValues[1] || '', true);
     } else if (propertyType === 'btn') {
-      result = btnCreator(class2Create, specify, propertyValues[0]);
+      result = btnCreator(class2Create, specify, normalizedPropertyValues[0], normalizedPropertyValues[1] || '');
     } else {
       // Default case: standard CSS property-value pair
       const cssProperty = css_camel.camelToCSSValid(property);
-      result = CSS_TEMPLATES.single(specify, cssProperty, propertyValues[0]);
+      result = CSS_TEMPLATES.multiple(specify, [buildPropertyFragment(cssProperty, normalizedPropertyValues[0], selector)]);
     }
   }
   if (values.cacheActive && cacheKey) {

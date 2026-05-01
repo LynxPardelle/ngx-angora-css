@@ -20,6 +20,89 @@ const multiLog = (toLog: [any, TLogPartsOptions?][]) => {
   console_log.multiBetterLogV1('btnCreator', toLog);
 };
 
+const SURFACE_BACKGROUND_COLOR_VAR = '--ank-surface-background-color';
+const SURFACE_BACKGROUND_IMAGE_VAR = '--ank-surface-background-image';
+const SURFACE_BACKGROUND_POSITION_VAR = '--ank-surface-background-position';
+const SURFACE_BACKGROUND_SIZE_VAR = '--ank-surface-background-size';
+const SURFACE_BACKGROUND_REPEAT_VAR = '--ank-surface-background-repeat';
+const SURFACE_BACKGROUND_ORIGIN_VAR = '--ank-surface-background-origin';
+const SURFACE_BACKGROUND_CLIP_VAR = '--ank-surface-background-clip';
+const SURFACE_BACKGROUND_ATTACHMENT_VAR = '--ank-surface-background-attachment';
+const TEXT_GRADIENT_IMAGE_VAR = '--ank-text-gradient-image';
+const TEXT_GRADIENT_POSITION_VAR = '--ank-text-gradient-position';
+const TEXT_GRADIENT_SIZE_VAR = '--ank-text-gradient-size';
+const TEXT_GRADIENT_ORIGIN_VAR = '--ank-text-gradient-origin';
+const TEXT_GRADIENT_SHADOW_VAR = '--ank-text-gradient-shadow';
+const TRANSPARENT_GRADIENT_LAYER = 'linear-gradient(transparent,transparent)';
+
+const isGradientValue = (value: string): boolean => {
+  return typeof value === 'string' && value.includes('gradient');
+};
+
+const buildTransparentBackground = (): string => 'background-color:transparent;';
+
+const buildRelativeShellStyles = (): string => {
+  return 'position:relative;isolation:isolate;background-color:transparent;border-color:transparent;';
+};
+
+const buildSolidShadow = (value: string, opacity: number = 0.5): string => {
+  const gradientColorMatch = isGradientValue(value) ? color_transform.separateColor4Transform(value)?.[0] : undefined;
+  const shadowSource = gradientColorMatch || color_transform.getShadeTintColorOrGradient(3, value);
+  const shadowRgb = color_transform.colorToRGB(shadowSource);
+
+  return `box-shadow:0 0 0 0.25rem rgba(${shadowRgb[0]},${shadowRgb[1]},${shadowRgb[2]},${opacity});`;
+};
+
+const buildGradientSurfaceDeclarations = (gradient: string): string => {
+  return `${buildGradientSurfaceVariableDeclarations(gradient)}background-color:var(${SURFACE_BACKGROUND_COLOR_VAR},transparent);background-image:var(${SURFACE_BACKGROUND_IMAGE_VAR},${TRANSPARENT_GRADIENT_LAYER});background-position:var(${SURFACE_BACKGROUND_POSITION_VAR},0 0);background-size:var(${SURFACE_BACKGROUND_SIZE_VAR},auto);background-repeat:var(${SURFACE_BACKGROUND_REPEAT_VAR},no-repeat);background-origin:var(${SURFACE_BACKGROUND_ORIGIN_VAR},border-box);background-clip:var(${SURFACE_BACKGROUND_CLIP_VAR},border-box);-webkit-background-clip:var(${SURFACE_BACKGROUND_CLIP_VAR},border-box);background-attachment:var(${SURFACE_BACKGROUND_ATTACHMENT_VAR},scroll);`;
+};
+
+const buildGradientSurfaceVariableDeclarations = (gradient: string): string => {
+  return `${SURFACE_BACKGROUND_COLOR_VAR}:transparent;${SURFACE_BACKGROUND_IMAGE_VAR}:${gradient};${SURFACE_BACKGROUND_POSITION_VAR}:0 0;${SURFACE_BACKGROUND_SIZE_VAR}:auto;${SURFACE_BACKGROUND_REPEAT_VAR}:no-repeat;`;
+};
+
+const buildButtonTextGradientLayerDeclarations = (): string => {
+  return `${TEXT_GRADIENT_POSITION_VAR}:0 0;${TEXT_GRADIENT_SIZE_VAR}:100% 100%;${TEXT_GRADIENT_ORIGIN_VAR}:content-box;${TEXT_GRADIENT_SHADOW_VAR}:none;`;
+};
+
+const usesGradientTextDeclarations = (styles: string): boolean => {
+  return typeof styles === 'string' && styles.includes(`${TEXT_GRADIENT_IMAGE_VAR}:`);
+};
+
+const buildGradientBorderLayer = (selector: string, gradient: string): string => {
+  return `${appendPseudoSelector(selector, '::before')}{content:"";position:absolute;inset:0;box-sizing:border-box;border:inherit;border-color:transparent;border-radius:inherit;background:${gradient} border-box;-webkit-mask:linear-gradient(#fff 0 0) padding-box,linear-gradient(#fff 0 0);-webkit-mask-composite:xor;mask-composite:exclude;pointer-events:none;z-index:-2;}`;
+};
+
+const buildGradientBorderUpdate = (selector: string, gradient: string): string => {
+  return `${appendPseudoSelector(selector, '::before')}{background:${gradient} border-box;}`;
+};
+
+const buildGradientFillLayer = (selector: string, gradient: string): string => {
+  return `${appendPseudoSelector(selector, '::before')}{content:"";position:absolute;inset:0;border-radius:inherit;background:${gradient};pointer-events:none;z-index:-1;}`;
+};
+
+const buildGradientFillUpdate = (selector: string, gradient: string): string => {
+  return `${appendPseudoSelector(selector, '::before')}{background:${gradient};}`;
+};
+
+const appendPseudoSelector = (selector: string, pseudo: '::before' | '::after'): string => {
+  return selector
+    .split(',')
+    .map(part => part.trim())
+    .filter(part => part.length > 0)
+    .map(part => `${part}${pseudo}`)
+    .join(', ');
+};
+
+const strengthenSelector = (selector: string, className: string): string => {
+  return selector
+    .split(',')
+    .map(part => part.trim())
+    .filter(part => part.length > 0)
+    .map(part => part.replace(`.${className}`, `.${className}.${className}`))
+    .join(', ');
+};
+
 /**
  * Optimized shade array generation
  */
@@ -150,13 +233,6 @@ export const btnCreator = (
     [shades['secondValue,3'], `shades ['secondValue,3']`],
   ]);
 
-  // Cached shadow color calculations
-  const shadowColorValue = color_transform.opacityCreator(shades['value,3'], 0.5);
-  const shadowColorSecondValue = color_transform.opacityCreator(shades['secondValue,3'], 0.5);
-  log(shadowColorValue, 'shadowColorValue');
-
-  const shadowNumericalValues: string = '0 0 0 0.25rem ';
-
   // Generate correction arrays efficiently with batched processing
   const correctionTasks: Array<TNameVal> = [];
 
@@ -173,27 +249,6 @@ export const btnCreator = (
         val: correctedVal,
       });
     }
-  }
-
-  // Process shadow values
-  const shadowValues = [
-    { name: 'shadowColorValue', val: shadowNumericalValues + shadowColorValue },
-    {
-      name: 'shadowColorSecondValue',
-      val: shadowNumericalValues + shadowColorSecondValue,
-    },
-  ];
-
-  for (const shadowVal of shadowValues) {
-    const correctedVal = values.cacheActive
-      ? (manage_cache.getCached<string>(`${'box-shadow'}|${shadowVal.val}`, 'buttonCorrection', () =>
-          propertyNValueCorrector('box-shadow', shadowVal.val)
-        ) as string)
-      : propertyNValueCorrector('box-shadow', shadowVal.val);
-    correctionTasks.push({
-      name: `${shadowVal.name}Corrected`,
-      val: correctedVal,
-    });
   }
 
   // Execute all corrections in parallel
@@ -224,38 +279,107 @@ export const btnCreator = (
     return `${values.specify.replace(specifyRegex, selector)}{${styles}}`;
   };
 
-  /* Basic Button */
-  const basicStyles = outline
-    ? correctVals['value,color'] + correctVals['secondValue,background-color'] + correctVals['value,border-color']
-    : correctVals['value,background-color'] + correctVals['value,border-color'];
-  newRuleArray.push(buildRule(specify, basicStyles));
+  const baseRuleSelector = specify;
+  const stateSelector = `.${class2Create}${specify}`;
+  const hoverSelector = `${stateSelector}:hover`;
+  const checkedSelector = `.btn-check:checked + ${stateSelector}, .btn-check:active + ${stateSelector}, ${stateSelector}.active, .show > ${stateSelector} .dropdown-toggle, ${stateSelector}:active`;
+  const focusActiveSelector = `.show > ${stateSelector} .dropdown-toggle:focus, .btn-check:checked + .btn-check:focus, .btn-check:active + ${stateSelector}:focus, ${stateSelector}.active:focus, ${stateSelector}:active:focus`;
+  const focusSelector = `.btn-check:focus + ${stateSelector}, ${stateSelector}:focus`;
+  const strengthenedStateSelector = strengthenSelector(stateSelector, class2Create);
+  const usesGradientSurface = isGradientValue(value);
+  const usesGradientTextPair = !!secondValue && isGradientValue(secondValue);
+  const hoverTextKey = secondValue ? 'secondValue,color' : 'value,color';
+  const solidShadowStyles = buildSolidShadow(value);
 
-  /* Hover Button */
-  const hoverStyles = outline
-    ? correctVals['secondValue,color'] +
-      correctVals['value,-15,background-color'] +
-      correctVals['secondValue,border-color']
-    : correctVals['value,-20,border-color'] + correctVals['value,background-color'];
-  newRuleArray.push(buildRule(`.${class2Create}${specify}:hover`, hoverStyles));
-
-  /* Focus Button (only for outline) */
   if (outline) {
-    const focusStyles = correctVals['secondValue,-15,background-color'] + correctVals['secondValue,-15,border-color'];
-    newRuleArray.push(
-      buildRule(`.btn-check:focus + .${class2Create}${specify}, .${class2Create}${specify}:focus`, focusStyles)
-    );
+    if (usesGradientSurface) {
+      const activeGradient = shades['value,-20'] || value;
+      const activeBorderGradient = shades['value,-25'] || value;
+      const strengthenedHoverSelector = strengthenSelector(hoverSelector, class2Create);
+      const strengthenedCheckedSelector = strengthenSelector(checkedSelector, class2Create);
+      const hoverTextStyles = correctVals[hoverTextKey] || '';
+      const hoverSurfaceStyles = usesGradientTextDeclarations(hoverTextStyles)
+        ? buildGradientSurfaceVariableDeclarations(value)
+        : buildGradientSurfaceDeclarations(value);
+      const checkedSurfaceStyles = usesGradientTextDeclarations(hoverTextStyles)
+        ? buildGradientSurfaceVariableDeclarations(activeGradient)
+        : buildGradientSurfaceDeclarations(activeGradient);
+
+      newRuleArray.push(
+        buildRule(
+          strengthenedStateSelector,
+          buildRelativeShellStyles() + buildButtonTextGradientLayerDeclarations() + correctVals['value,color']
+        )
+      );
+      newRuleArray.push(buildGradientBorderLayer(stateSelector, value));
+      newRuleArray.push(buildRule(strengthenedHoverSelector, hoverSurfaceStyles + hoverTextStyles));
+      newRuleArray.push(buildRule(focusSelector, solidShadowStyles));
+      newRuleArray.push(buildRule(strengthenedCheckedSelector, checkedSurfaceStyles + hoverTextStyles + solidShadowStyles));
+      newRuleArray.push(buildGradientBorderUpdate(strengthenedCheckedSelector, activeBorderGradient));
+      newRuleArray.push(buildRule(focusActiveSelector, solidShadowStyles));
+    } else {
+      const focusStyles = solidShadowStyles;
+      const checkedStyles =
+        (correctVals[hoverTextKey] || '') +
+        correctVals['value,-20,background-color'] +
+        correctVals['value,-25,border-color'] +
+        solidShadowStyles;
+
+      newRuleArray.push(
+        buildRule(baseRuleSelector, (correctVals['value,color'] || '') + buildTransparentBackground() + correctVals['value,border-color'])
+      );
+      newRuleArray.push(
+        buildRule(hoverSelector, (correctVals[hoverTextKey] || '') + correctVals['value,background-color'] + correctVals['value,border-color'])
+      );
+      newRuleArray.push(buildRule(focusSelector, focusStyles));
+      newRuleArray.push(buildRule(checkedSelector, checkedStyles));
+      newRuleArray.push(buildRule(focusActiveSelector, solidShadowStyles));
+    }
+  } else if (usesGradientSurface) {
+    const hoverGradient = shades['value,-15'] || value;
+    const activeGradient = shades['value,-20'] || value;
+    if (usesGradientTextPair) {
+      const strengthenedHoverSelector = strengthenSelector(hoverSelector, class2Create);
+      const strengthenedCheckedSelector = strengthenSelector(checkedSelector, class2Create);
+      const baseTextStyles = correctVals['secondValue,color'] || '';
+
+      newRuleArray.push(
+        buildRule(
+          strengthenedStateSelector,
+          buildRelativeShellStyles() + buildButtonTextGradientLayerDeclarations() + buildGradientSurfaceVariableDeclarations(value) + baseTextStyles
+        )
+      );
+      newRuleArray.push(buildRule(strengthenedHoverSelector, buildGradientSurfaceVariableDeclarations(hoverGradient)));
+      newRuleArray.push(buildRule(focusSelector, solidShadowStyles));
+      newRuleArray.push(buildRule(strengthenedCheckedSelector, buildGradientSurfaceVariableDeclarations(activeGradient) + solidShadowStyles));
+      newRuleArray.push(buildRule(focusActiveSelector, solidShadowStyles));
+    } else {
+      newRuleArray.push(
+        buildRule(strengthenedStateSelector, buildRelativeShellStyles() + buildButtonTextGradientLayerDeclarations())
+      );
+      newRuleArray.push(buildGradientFillLayer(stateSelector, value));
+      newRuleArray.push(buildGradientFillUpdate(hoverSelector, hoverGradient));
+      newRuleArray.push(buildRule(focusSelector, solidShadowStyles));
+      newRuleArray.push(buildRule(checkedSelector, solidShadowStyles));
+      newRuleArray.push(buildGradientFillUpdate(checkedSelector, activeGradient));
+      newRuleArray.push(buildRule(focusActiveSelector, solidShadowStyles));
+    }
+  } else {
+    /* Basic Button */
+    const basicStyles = correctVals['value,background-color'] + correctVals['value,border-color'];
+    newRuleArray.push(buildRule(baseRuleSelector, basicStyles));
+
+    /* Hover Button */
+    const hoverStyles = correctVals['value,-20,border-color'] + correctVals['value,background-color'];
+    newRuleArray.push(buildRule(hoverSelector, hoverStyles));
+
+    /* Checked/Active Button */
+    const checkedStyles = correctVals['value,-20,background-color'] + correctVals['value,-25,border-color'] + solidShadowStyles;
+    newRuleArray.push(buildRule(checkedSelector, checkedStyles));
+
+    /* Focus within active state */
+    newRuleArray.push(buildRule(focusActiveSelector, solidShadowStyles));
   }
-
-  /* Checked/Active Button */
-  const checkedStyles = outline
-    ? correctVals['value,-25,border-color']
-    : correctVals['value,-20,background-color'] + correctVals['value,-25,border-color'];
-  const checkedSelector = `.btn-check:checked + .${class2Create}${specify}, .btn-check:active + .${class2Create}${specify}, .${class2Create}${specify}.active, .show > .${class2Create}${specify} .dropdown-toggle, .${class2Create}${specify}:active`;
-  newRuleArray.push(buildRule(checkedSelector, checkedStyles + correctValsShadows['shadowColorValueCorrected']));
-
-  /* Focus within active state */
-  const focusActiveSelector = `.show > .${class2Create}${specify} .dropdown-toggle:focus, .btn-check:checked + .btn-check:focus, .btn-check:active + .${class2Create}${specify}:focus, .${class2Create}${specify}.active:focus, .${class2Create}${specify}:active:focus`;
-  newRuleArray.push(buildRule(focusActiveSelector, correctValsShadows['shadowColorValueCorrected']));
 
   log(newRuleArray, 'newRuleArray');
 
