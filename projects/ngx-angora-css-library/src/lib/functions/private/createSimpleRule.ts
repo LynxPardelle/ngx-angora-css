@@ -1,3 +1,4 @@
+import { css_create_diagnostics } from '../css_create_diagnostics';
 /* Singletons */
 import { ValuesSingleton } from '../../singletons/valuesSingleton';
 /* Funtions */
@@ -13,7 +14,7 @@ const multiLog = (toLog: [any, TLogPartsOptions?][]) => {
 };
 export const createSimpleRule = (rule: string): void => {
   log(rule, 'rule');
-  if (!values.sheet) return;
+  if (!values.sheet || typeof rule !== 'string' || rule.trim().length === 0) return;
   let originalMediaRules: boolean = false;
   let rulesParsed: string[] = rule
     .replace(/{/g, values.separator)
@@ -23,6 +24,20 @@ export const createSimpleRule = (rule: string): void => {
     .map(r => {
       return r.replace(/\n/g, '').replace(/\s{2}/g, '');
     });
+  if (rulesParsed.length === 0 || !rulesParsed[0]) {
+    css_create_diagnostics.addDiagnostic({
+      code: 'invalid-rule-fragment',
+      severity: 'warning',
+      stage: 'ruleCreation',
+      message: 'Skipped CSS rule insertion because the rule fragment is empty after parsing.',
+      details: {
+        rule,
+      },
+      suggestedFix: 'Inspect the generated rule string and make sure it contains a selector and declaration block.',
+      recoverable: true,
+    });
+    return;
+  }
   let mediaRule: string = rulesParsed[0].includes('media') ? rulesParsed[0] : '';
   if (mediaRule !== '') {
     if (mediaRule.endsWith(' ')) {

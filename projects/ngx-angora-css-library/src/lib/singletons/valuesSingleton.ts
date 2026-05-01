@@ -373,9 +373,9 @@ export class ValuesSingleton {
   public parseClassCache: Map<
     string,
     {
-      class2Create: string;
-      bpsStringed: IBPS[];
       classes2CreateStringed: string;
+      bps?: IBPS;
+      status: 'created';
     }
   > = new Map();
   public getNewClasses2CreateCache: Map<string, string[]> = new Map();

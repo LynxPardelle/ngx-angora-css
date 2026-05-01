@@ -1,6 +1,7 @@
 /* Singletons */
 import { ValuesSingleton } from '../../../singletons/valuesSingleton';
 /* Functions */
+import { css_create_diagnostics } from '../../../functions/css_create_diagnostics';
 import { console_log } from '../../../functions/console_log';
 import { manage_cache } from '../../manage_cache';
 /* Types */
@@ -21,6 +22,19 @@ export const values4ComboGetter = (class2Create: string): string[] => {
   // Performance monitoring
   const startTime = performance.now();
   log(class2Create, 'class2Create');
+
+  if (typeof class2Create !== 'string' || class2Create.length === 0) {
+    css_create_diagnostics.addDiagnostic({
+      code: 'invalid-combo-class-input',
+      severity: 'warning',
+      stage: 'values4ComboGetter',
+      message: 'Skipped combo value extraction because the class name is empty or not a string.',
+      details: { class2Create },
+      suggestedFix: 'Make sure combo parsing only receives non-empty class strings.',
+      recoverable: true,
+    });
+    return [];
+  }
 
   // Stage 1: Cache Check
   let cacheKey: string | undefined;
@@ -54,7 +68,10 @@ export const values4ComboGetter = (class2Create: string): string[] => {
   }
 
   // Stage 3: Extract values source
-  const valsSource: string = class2Create.split('VALS')[1];
+  const valsSource: string = class2Create.split('VALS')[1] || '';
+  if (!valsSource) {
+    return result;
+  }
   multiLog([
     [valsSource, 'extracted valsSource'],
     [valsSource.length, 'valsSource length'],
@@ -110,44 +127,91 @@ export const values4ComboGetter = (class2Create: string): string[] => {
 
   // Stage 7: Process matched values and build sorted structure
   const valsToSortExtras: TVals2Sort[] = [];
-  let valsToSort: TVals2Sort[] = valsToSortSource.map((v: string, mapIndex: number) => {
-    log(`processing match ${mapIndex + 1}/${valsToSortSource.length}: ${v}`, 'match processing');
+  let valsToSort: TVals2Sort[] = valsToSortSource
+    .map((v: string, mapIndex: number) => {
+      log(`processing match ${mapIndex + 1}/${valsToSortSource.length}: ${v}`, 'match processing');
 
-    const index: string = v.split('VAL')[1].split('N')[0];
-    const valReplace: RegExp = values.cacheActive
-      ? (manage_cache.getCached<RegExp>(index, 'regExp', () => new RegExp(`VAL${index}N`, 'g')) as RegExp)
-      : new RegExp(`VAL${index}N`, 'g');
-    let firstIndex: number = parseInt(index);
+      const valueAfterVAL = v.split('VAL')[1];
+      if (!valueAfterVAL) {
+        css_create_diagnostics.addDiagnostic({
+          code: 'invalid-combo-payload',
+          severity: 'warning',
+          stage: 'values4ComboGetter',
+          className: class2Create,
+          message: 'Skipped a malformed combo payload because it does not contain a VAL index.',
+          details: { payload: v },
+          suggestedFix: 'Check the combo template markers and make sure every VAL token has a numeric index.',
+          recoverable: true,
+        });
+        return null;
+      }
 
-    multiLog([
-      [index, 'extracted index string'],
-      [firstIndex, 'parsed first index'],
-      [index.includes('_'), 'has multiple indexes'],
-    ]);
+      const index: string = valueAfterVAL.split('N')[0];
+      if (!index) {
+        css_create_diagnostics.addDiagnostic({
+          code: 'invalid-combo-index',
+          severity: 'warning',
+          stage: 'values4ComboGetter',
+          className: class2Create,
+          message: 'Skipped a malformed combo payload because the value index could not be resolved.',
+          details: { payload: v },
+          suggestedFix: 'Check the combo template markers and make sure the value index is present before N.',
+          recoverable: true,
+        });
+        return null;
+      }
 
-    if (index.includes('_')) {
-      const indexes: string[] = index.split('_');
-      log(indexes, 'indexes splitted from index');
+      const valReplace: RegExp = values.cacheActive
+        ? (manage_cache.getCached<RegExp>(index, 'regExp', () => new RegExp(`VAL${index}N`, 'g')) as RegExp)
+        : new RegExp(`VAL${index}N`, 'g');
+      const firstIndex: number = parseInt(index);
+      if (Number.isNaN(firstIndex)) {
+        css_create_diagnostics.addDiagnostic({
+          code: 'invalid-combo-index-number',
+          severity: 'warning',
+          stage: 'values4ComboGetter',
+          className: class2Create,
+          message: 'Skipped a malformed combo payload because the resolved index is not numeric.',
+          details: { payload: v, index },
+          suggestedFix: 'Use numeric indexes in combo value markers.',
+          recoverable: true,
+        });
+        return null;
+      }
 
-      indexes.forEach((i: string, it: number) => {
-        if (it > 0) {
-          const extraVal = {
-            index: parseInt(i),
-            val: v.replace(valReplace, ''),
-          };
-          valsToSortExtras.push(extraVal);
-        }
-      });
-    }
+      multiLog([
+        [index, 'extracted index string'],
+        [firstIndex, 'parsed first index'],
+        [index.includes('_'), 'has multiple indexes'],
+      ]);
 
-    const processedValue = {
-      index: firstIndex,
-      val: v.replace(valReplace, ''),
-    };
+      if (index.includes('_')) {
+        const indexes: string[] = index.split('_');
+        log(indexes, 'indexes splitted from index');
 
-    log(processedValue, `processedValue ${mapIndex + 1}`);
-    return processedValue;
-  });
+        indexes.forEach((i: string, it: number) => {
+          if (it > 0) {
+            const parsedIndex = parseInt(i);
+            if (!Number.isNaN(parsedIndex)) {
+              const extraVal = {
+                index: parsedIndex,
+                val: v.replace(valReplace, ''),
+              };
+              valsToSortExtras.push(extraVal);
+            }
+          }
+        });
+      }
+
+      const processedValue = {
+        index: firstIndex,
+        val: v.replace(valReplace, ''),
+      };
+
+      log(processedValue, `processedValue ${mapIndex + 1}`);
+      return processedValue;
+    })
+    .filter((value): value is TVals2Sort => value !== null);
 
   multiLog([
     [valsToSort.length, 'primary values count'],
@@ -225,6 +289,9 @@ export const values4ComboGetter = (class2Create: string): string[] => {
   // Stage 13: Fill empty positions
   const emptyValsToFillValsSorted: TVals2Sort[] = [];
   const sortedValsToSort = [...valsToSort].sort((v1, v2) => v1.index - v2.index);
+  if (sortedValsToSort.length === 0) {
+    return result;
+  }
   const lastValIndex = sortedValsToSort[sortedValsToSort.length - 1].index;
 
   multiLog([

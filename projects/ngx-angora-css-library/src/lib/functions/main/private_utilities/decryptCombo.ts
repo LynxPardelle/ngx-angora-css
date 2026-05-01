@@ -11,6 +11,25 @@ const multiLog = (toLog: [any, TLogPartsOptions?][]) => {
   console_log.multiBetterLogV1('decryptCombo', toLog);
 };
 
+const findMatchingCreatedComboKey = (value: string): string | undefined => {
+  if (typeof value !== 'string' || value.length === 0) {
+    return undefined;
+  }
+
+  let matchedComboKey: string | undefined;
+  for (const comboKey of values.combosCreatedKeys) {
+    if (!value.includes(comboKey)) {
+      continue;
+    }
+
+    if (!matchedComboKey || comboKey.length > matchedComboKey.length) {
+      matchedComboKey = comboKey;
+    }
+  }
+
+  return matchedComboKey;
+};
+
 const values: ValuesSingleton = ValuesSingleton.getInstance();
 /**
  * Decrypts a combination by finding and replacing abbreviated combo strings with their full values.
@@ -89,13 +108,9 @@ export const decryptCombo = (specify: string, class2Create: string, class2Create
   log(combosCreatedKeys, 'combosCreatedKeys');
 
   // Find matching combo key using efficient Set-based lookup
-  let comboCreatedKey: string | undefined;
-  for (const key of combosCreatedKeys) {
-    if (specify.includes(key)) {
-      comboCreatedKey = key;
-      log(comboCreatedKey, 'cs');
-      break; // Early exit once found
-    }
+  const comboCreatedKey = findMatchingCreatedComboKey(`${specify} ${class2Create} ${class2CreateStringed}`);
+  if (comboCreatedKey) {
+    log(comboCreatedKey, 'cs');
   }
 
   log(comboCreatedKey, 'comboCreatedKey');

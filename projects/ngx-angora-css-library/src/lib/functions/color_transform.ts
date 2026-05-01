@@ -56,6 +56,10 @@ export const color_transform = {
    */
   colorToRGB(color: string): number[] {
     try {
+      if (typeof color !== 'string' || color.trim().length === 0) {
+        return [255, 0, 0];
+      }
+
       const normalizedColor = color.toLowerCase().trim();
 
       // Check cache first
@@ -215,6 +219,10 @@ export const color_transform = {
    */
   HSLToRGB(hsl: string): string {
     // Quick validation
+    if (typeof hsl !== 'string' || hsl.length === 0) {
+      return 'rgb(255,0,0)';
+    }
+
     if (!hsl.toLowerCase().startsWith('hsl')) {
       return 'rgb(255,0,0)'; // Fallback to red
     }
@@ -433,6 +441,10 @@ export const color_transform = {
    * - Preserves gradient syntax while modifying embedded colors
    */
   opacityCreator(value: string, opacity: number): string {
+    if (typeof value !== 'string' || value.length === 0) {
+      return `rgba(255,0,0,${opacity})`;
+    }
+
     if (value.includes('gradient')) {
       const colorMatches = this.separateColor4Transform(value);
       log(colorMatches, 'colorMatches');
@@ -490,6 +502,10 @@ export const color_transform = {
    * - Combines shadeTintColor and colorToRGB for efficient processing
    */
   getShadeTintColorOrGradient(tintValue: number, value: string): string {
+    if (typeof value !== 'string' || value.length === 0) {
+      return 'rgba(255,0,0)';
+    }
+
     if (value.includes('gradient')) {
       const colorMatches = this.separateColor4Transform(value);
       log(colorMatches, 'colorMatches');

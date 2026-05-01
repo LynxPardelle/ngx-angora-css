@@ -13,10 +13,34 @@ const log = (t: any, p?: TLogPartsOptions) => {
 const multiLog = (toLog: [any, TLogPartsOptions?][]) => {
   console_log.multiBetterLogV1('manageCombos', toLog);
 };
+
+const classBelongsToCombo = (createdClass: string, comboName: string): boolean => {
+  if (typeof createdClass !== 'string' || typeof comboName !== 'string') {
+    return false;
+  }
+
+  if (createdClass.includes(comboName)) {
+    return true;
+  }
+
+  for (const comboKey of values.combosCreatedKeys) {
+    if (!createdClass.includes(comboKey)) {
+      continue;
+    }
+
+    const originalComboClass = values.combosCreated[comboKey];
+    if (typeof originalComboClass === 'string' && originalComboClass.startsWith(comboName)) {
+      return true;
+    }
+  }
+
+  return false;
+};
+
 export const manage_combos = {
   pushCombos(combos: any): void {
     try {
-      let prevIgnoredCombosValues: string[] = [];
+      const prevIgnoredCombosValuesSet: Set<string> = new Set();
       Object.keys(combos).forEach(key => {
         values.combos[key] =
           typeof combos[key] === 'string'
@@ -29,10 +53,11 @@ export const manage_combos = {
         if (!values.combosKeys.has(key)) {
           values.combosKeys.add(key);
         }
-        prevIgnoredCombosValues = Array.from(values.alreadyCreatedClasses).filter((aC: any) => {
-          return aC.includes(key);
-        });
+        Array.from(values.alreadyCreatedClasses)
+          .filter((createdClass: string) => classBelongsToCombo(createdClass, key))
+          .forEach((createdClass: string) => prevIgnoredCombosValuesSet.add(createdClass));
       });
+      const prevIgnoredCombosValues = Array.from(prevIgnoredCombosValuesSet);
       if (values.cacheActive) {
         manage_cache.clearAllNoneEssential();
       }
@@ -55,7 +80,7 @@ export const manage_combos = {
         values.combos[combo] = newValues;
         let classes2Delete: string[] = [];
         for (let createdClass of values.alreadyCreatedClasses) {
-          if (createdClass.includes(combo)) {
+          if (classBelongsToCombo(createdClass, combo)) {
             classes2Delete.push(createdClass);
           }
         }

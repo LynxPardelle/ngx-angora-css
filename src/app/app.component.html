@@ -1,11 +1,350 @@
-<div class="shadow ank-p-5rem ank-bg-dankcent ank-mx-3rem ank-my-5rem-2rem ank-link-secbank ank-h-calcSD100vh__MIN__7remED ank-d-grid ank-placeContent-center ank-w-calcSD100per__MIN__6remED ank-boxSizingSELCOMALL-borderMINbox">
-  <h1 class="ank-c-revdankcent ank-d-inline">Angora CSS</h1>
-  <a href="https://lynxpardelle.com" target="_blank" rel="noopener noreferrer"
-    >by Lynx Pardelle</a
-  >
-  <button class="ank-btnOutline-succank-secbank AbtnVALSVL2pxVL2rem__auto__1rem">Do something</button>
-  <button class="ank-btnOutline-indigoBS-friend AbtnVALSVAL3N2remVAL3NVL8px">Do something</button>
-  <button class="ank-btn-dankcent AbtnVALSVAL3N1remVAL3NVAL4N1remVAL4N">Do something</button>
-  <button class="ank-btnOutline-dankcent-revdankcent AbtnVALSVAL3_4N1remVAL3_4N">Do something</button>
-  <button class="ank-btnOutline-primary-success AbtnVALSVAL3_4N1remVAL3_4NVL8pxVL2rem__autoVL3rem">Do something</button>
+<div class="APage">
+  <div class="ALayout">
+    <section class="AShowcaseStack">
+      <section class="AHero">
+        <p class="ALabel">Dynamic CSS runtime</p>
+        <h1 class="ank-m-0 ank-c-inkpulse ank-fontSize-2_8rem ank-lineHeight-1_05">Angora CSS capability lab</h1>
+        <p class="AHeroCopy">
+          This demo turns the Angular app into a broad tour of runtime colors, responsive breakpoints, selector
+          targeting, combo values, pseudo states, diagnostics, and Angular-only directive behavior.
+        </p>
+
+        <div class="AChipRow">
+          <span class="LabBanner">Default runtime combo</span>
+          <span class="LabBannerVALSVLbrandNebulaVLfieldMist">Gradient override</span>
+          <span class="LabBannerVALSVLsignalMintVLinkpulse">Solid override</span>
+        </div>
+
+        <button type="button" class="AActionButton" (click)="cssCreate()">Re-run cssCreate()</button>
+      </section>
+
+      <section class="ASection">
+        <div class="ASectionHeader">
+          <p class="ALabel">Buttons and gradients</p>
+          <h2 class="ank-m-0 ank-fontSize-1_45rem">Variable combos and existing button families</h2>
+          <p class="AMuted">
+            The gallery keeps the proven button cases from the existing demo, including gradient fills and shared
+            combo-value overrides.
+          </p>
+        </div>
+
+        <div class="AButtonGallery">
+          @for (button of showcaseButtons; track button.className) {
+            <article class="AShowcaseCard">
+              <div class="ank-d-grid ank-gap-0_5rem">
+                <p class="AShowcaseLabel">{{ button.label }}</p>
+                <p class="AMuted">{{ button.note }}</p>
+              </div>
+              <button type="button" [class]="button.className">Do something</button>
+              <code class="AChip">{{ button.className }}</code>
+            </article>
+          }
+        </div>
+      </section>
+
+      <section class="ASection">
+        <div class="ASectionHeader">
+          <p class="ALabel">Utility families</p>
+          <h2 class="ank-m-0 ank-fontSize-1_45rem">Class and value abbreviations working together</h2>
+          <p class="AMuted">
+            These runtime aliases compress common layout patterns into shorter tokens without changing the parser
+            contract.
+          </p>
+        </div>
+
+        <div
+          class="APreviewSurface disp-flex flowDir-column flowJust-center crossAlign-center clusterGap-spaceStack surfacePad-spaceStack maxPanel-panelWidth ank-bg-white"
+        >
+          <p class="ALabel">Preview block</p>
+          <strong>Runtime class aliases keep layout tokens terse and composable.</strong>
+          <span class="ank-d-inlineMINblock ank-bg-brandAurora ank-c-fieldMist ank-fontSize-heroScale ank-rounded-pillRadius ank-boxShadow-softShadow ank-px-0_75rem ank-py-0_35rem">
+            Value aliases cover size, radius, and shadow tokens.
+          </span>
+        </div>
+
+        <div class="AChipRow">
+          @for (token of utilityTokens; track token) {
+            <code class="AChip">{{ token }}</code>
+          }
+        </div>
+      </section>
+
+      <section class="ASection">
+        <div class="ASectionHeader">
+          <p class="ALabel">Pseudo states</p>
+          <h2 class="ank-m-0 ank-fontSize-1_45rem">Hover, focus, and active feedback</h2>
+          <p class="AMuted">These controls exercise pseudo-state utilities directly in the page flow.</p>
+        </div>
+
+        <div class="AButtonGallery">
+          <article class="AShowcaseCard">
+            <button
+              type="button"
+              class="ank-bg-brandNebula ank-c-fieldMist ank-p-0_85rem__1rem ank-rounded-pillRadius ank-borderWidth-1px ank-borderStyle-solid ank-borderColor-cloudLine ank-fontWeight-700 ank-bgHover-brandAurora ank-cHover-fieldMist ank-transformHover-translateYSDMIN2pxED ank-transformActive-scaleSD0_98ED ank-boxShadowFocus-0__0__0__3px__rgbaSD16COM185COM129COM0_35ED"
+            >
+              Hover, focus, and press
+            </button>
+            <code class="AChip">ank-bgHover-brandAurora ank-transformActive-scaleSD0_98ED</code>
+          </article>
+
+          <article class="AShowcaseCard">
+            <input
+              class="AInput ank-boxShadowFocus-0__0__0__3px__rgbaSD56COM189COM248COM0_25ED"
+              placeholder="Focus this field to preview focus styles"
+            />
+            <code class="AChip">ank-boxShadowFocus-0__0__0__3px__rgbaSD56COM189COM248COM0_25ED</code>
+          </article>
+        </div>
+      </section>
+
+      <section class="ASection">
+        <div class="ASectionHeader">
+          <p class="ALabel">Responsive behavior</p>
+          <h2 class="ank-m-0 ank-fontSize-1_45rem">Custom breakpoints drive the layout grid</h2>
+          <p class="AMuted">
+            The responsive gallery starts at one column, shifts to two at stage, and reaches three at billboard.
+          </p>
+        </div>
+
+        <div class="AResponsiveGrid">
+          @for (item of responsiveItems; track item.breakpoint) {
+            <article class="AResponsiveCard">
+              <p class="AShowcaseLabel">{{ item.breakpoint }}</p>
+              <h3 class="ank-m-0 ank-fontSize-1_05rem">{{ item.title }}</h3>
+              <p class="AMuted">{{ item.description }}</p>
+              <div class="AChipRow">
+                @for (token of item.tokens; track token) {
+                  <code class="AChip">{{ token }}</code>
+                }
+              </div>
+            </article>
+          }
+        </div>
+      </section>
+
+      <section class="ASection">
+        <div class="ASectionHeader">
+          <p class="ALabel">Selector targeting</p>
+          <h2 class="ank-m-0 ank-fontSize-1_45rem">Parent tokens style descendants without custom CSS</h2>
+          <p class="AMuted">
+            The section below uses documented `SEL__` syntax to target descendant tags from the parent container.
+          </p>
+        </div>
+
+        <div
+          class="APreviewSurface ank-cSEL__strong-brandAurora ank-bgSEL__code-fieldMist ank-cSEL__code-inkpulse ank-pSEL__code-0_15rem__0_4rem ank-roundedSEL__code-0_4rem ank-bgSEL__button-brandAurora ank-cSEL__button-fieldMist ank-pSEL__button-0_55rem__0_9rem ank-roundedSEL__button-pillRadius ank-borderWidthSEL__button-1px ank-borderStyleSEL__button-solid ank-borderColorSEL__button-cloudLine"
+        >
+          <p class="ank-m-0">A <strong>strong token</strong> inherits the runtime accent from the parent.</p>
+          <p class="ank-m-0">Inline <code>code samples</code> get their own capsule treatment.</p>
+          <div class="AChipRow">
+            <button type="button">Nested action</button>
+            <button type="button">Second action</button>
+          </div>
+        </div>
+
+        <div class="AChipRow">
+          @for (token of selectorTokens; track token) {
+            <code class="AChip">{{ token }}</code>
+          }
+        </div>
+      </section>
+
+      <section class="ASection">
+        <div class="ASectionHeader">
+          <p class="ALabel">Runtime extension API</p>
+          <h2 class="ank-m-0 ank-fontSize-1_45rem">Every public registry hook shown in one place</h2>
+          <p class="AMuted">The cards below mirror the exact runtime methods the app calls during setup.</p>
+        </div>
+
+        <div class="AResponsiveGrid">
+          @for (family of runtimeFamilies; track family.method) {
+            <article class="AResponsiveCard">
+              <p class="AShowcaseLabel">{{ family.method }}</p>
+              <h3 class="ank-m-0 ank-fontSize-1_05rem">{{ family.title }}</h3>
+              <p class="AMuted">{{ family.description }}</p>
+              <div class="AChipRow">
+                @for (token of family.tokens; track token) {
+                  <code class="AChip">{{ token }}</code>
+                }
+              </div>
+            </article>
+          }
+        </div>
+      </section>
+
+      <section class="ASection">
+        <div class="ASectionHeader">
+          <p class="ALabel">Angular directive</p>
+          <h2 class="ank-m-0 ank-fontSize-1_45rem">ItExists directive handshake</h2>
+          <p class="AMuted">This keeps the wrapper-specific directive visible inside the same capability showcase.</p>
+        </div>
+
+        <div ankItExists [exist]="true" (ankItExists)="markDirectiveReady()" class="APreviewSurface">
+          <div class="ADirectiveStatus">
+            <span class="LabBannerVALSVLsignalMintVLinkpulse">Directive event bridge</span>
+            <span
+              class="ABadge"
+              [class.ank-bg-seagreen]="directiveReady"
+              [class.ank-bg-goldenrod]="!directiveReady"
+            >{{ directiveReady ? 'ready' : 'waiting' }}</span>
+          </div>
+          <p class="AMuted">Directive events observed: {{ directiveEvents }}</p>
+        </div>
+      </section>
+    </section>
+
+    <aside class="APanelStack">
+      <section class="APanel">
+        <p class="ALabel">Registry snapshot</p>
+        <h2 class="ank-m-0 ank-fontSize-1_35rem">Runtime extension API</h2>
+
+        <div class="AMetricGrid">
+          @for (stat of apiStats; track stat.method) {
+            <article class="AMetricCard">
+              <span>{{ stat.label }}</span>
+              <strong>{{ stat.count }}</strong>
+              <small>{{ stat.hint }}</small>
+            </article>
+          }
+        </div>
+
+        <ul class="AList">
+          @for (family of runtimeFamilies; track family.method) {
+            <li class="ASampleItem">
+              <div class="ank-d-grid ank-gap-0_35rem">
+                <strong>{{ family.method }}</strong>
+                <span class="ank-fontSize-0_85rem ank-opacity-0_8">{{ family.description }}</span>
+              </div>
+            </li>
+          }
+        </ul>
+      </section>
+
+      <section class="APanel">
+        <p class="ALabel">Last run</p>
+        <h2 class="ank-m-0 ank-fontSize-1_35rem">CSS creation report</h2>
+
+        <div class="AMetricGrid">
+          <article class="AMetricCard">
+            <span>Processed</span>
+            <strong>{{ cssCreateReport.processedClasses }}</strong>
+          </article>
+          <article class="AMetricCard">
+            <span>Created</span>
+            <strong>{{ cssCreateReport.createdClasses }}</strong>
+          </article>
+          <article class="AMetricCard">
+            <span>Skipped</span>
+            <strong>{{ cssCreateReport.skippedClasses }}</strong>
+          </article>
+          <article class="AMetricCard">
+            <span>Failed</span>
+            <strong>{{ cssCreateReport.failedClasses }}</strong>
+          </article>
+        </div>
+
+        <div class="AMeta">
+          <span>Last success: {{ cssCreateReport.lastSuccessfulClassName || 'none' }}</span>
+          <br />
+          <span>Last failure: {{ cssCreateReport.lastFailedClassName || 'none' }}</span>
+        </div>
+
+        @if (cssCreateReport.diagnostics.length > 0) {
+          <ul class="AList">
+            @for (diagnostic of cssCreateReport.diagnostics; track $index) {
+              <li
+                class="ADiagnosticItem"
+                [class.ank-borderLeftColor-indianred]="diagnostic.severity === 'error'"
+              >
+                <div class="AValidationHead">
+                  <strong>{{ diagnostic.code }}</strong>
+                  <span>{{ diagnostic.stage }}</span>
+                </div>
+                <p class="ank-mt-0_35rem ank-mb-0">{{ diagnostic.message }}</p>
+                @if (diagnostic.className) {
+                  <code class="ank-fontSize-0_85rem">{{ diagnostic.className }}</code>
+                }
+              </li>
+            }
+          </ul>
+        } @else {
+          <p class="AMuted">No diagnostics were emitted in the last run.</p>
+        }
+      </section>
+
+      <section class="APanel">
+        <p class="ALabel">Preflight</p>
+        <h2 class="ank-m-0 ank-fontSize-1_35rem">Validate a class before creation</h2>
+
+        <div class="AValidateRow">
+          <input
+            #candidateInput
+            class="AInput"
+            [value]="validationCandidate"
+            placeholder="ank-color-signalMint"
+          />
+          <button type="button" class="AFormButton" (click)="validateCandidate(candidateInput.value)">
+            Validate
+          </button>
+        </div>
+
+        <div
+          class="AValidationBox"
+          [class.ank-bg-honeydew]="latestValidation.status === 'valid'"
+          [class.ank-borderColor-lightgreen]="latestValidation.status === 'valid'"
+          [class.ank-bg-mistyrose]="latestValidation.status === 'invalid'"
+          [class.ank-borderColor-indianred]="latestValidation.status === 'invalid'"
+          [class.ank-bg-cornsilk]="latestValidation.status === 'duplicate'"
+          [class.ank-borderColor-goldenrod]="latestValidation.status === 'duplicate'"
+        >
+          <div class="AValidationHead">
+            <span
+              class="ABadge"
+              [class.ank-bg-seagreen]="latestValidation.status === 'valid'"
+              [class.ank-bg-indianred]="latestValidation.status === 'invalid'"
+              [class.ank-bg-goldenrod]="latestValidation.status === 'duplicate'"
+            >{{ latestValidation.status }}
+            </span>
+            <code class="ank-fontSize-0_85rem">{{ latestValidation.normalizedClassName || '(empty class)' }}</code>
+          </div>
+
+          @if (latestValidation.generatedRule) {
+            <pre class="ARulePreview">{{ latestValidation.generatedRule }}</pre>
+          }
+
+          @if (latestValidation.diagnostics.length > 0) {
+            <ul class="AList">
+              @for (diagnostic of latestValidation.diagnostics; track $index) {
+                <li class="ADiagnosticItem">
+                  <strong>{{ diagnostic.code }}</strong>
+                  <p class="ank-mt-0_35rem ank-mb-0">{{ diagnostic.message }}</p>
+                </li>
+              }
+            </ul>
+          } @else {
+            <p class="AMuted">The current class is ready to be used.</p>
+          }
+        </div>
+
+        <div class="ank-d-grid ank-gap-0_75rem">
+          <div class="ASummary">
+            <span>{{ sampleValidationReport.validClasses }} valid</span>
+            <br />
+            <span>{{ sampleValidationReport.invalidClasses }} invalid</span>
+            <br />
+            <span>{{ sampleValidationReport.duplicateClasses }} duplicate</span>
+          </div>
+
+          <ul class="AList">
+            @for (result of sampleValidationReport.results; track result.className) {
+              <li class="ASampleItem">
+                <code class="ank-fontSize-0_85rem">{{ result.className }}</code>
+                <span class="ank-fontSize-0_85rem ank-opacity-0_8">{{ result.status }}</span>
+              </li>
+            }
+          </ul>
+        </div>
+      </section>
+    </aside>
+  </div>
 </div>

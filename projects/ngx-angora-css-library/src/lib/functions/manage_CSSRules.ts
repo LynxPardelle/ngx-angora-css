@@ -1,6 +1,7 @@
 /* Singletons */
 import { ValuesSingleton } from '../singletons/valuesSingleton';
 /* Funtions */
+import { css_create_diagnostics } from './css_create_diagnostics';
 import { console_log } from './console_log';
 import { createMediaRule } from './private/createMediaRule';
 import { createSimpleRule } from './private/createSimpleRule';
@@ -41,13 +42,28 @@ export const manage_CSSRules = {
   createCSSRule(rule: string): void {
     log(rule, 'rule');
     try {
-      if (rule && !rule.startsWith('@media')) {
+      if (typeof rule !== 'string' || rule.trim().length === 0) {
+        return;
+      }
+      if (!rule.startsWith('@media')) {
         createSimpleRule(rule);
       } else {
         createMediaRule(rule);
       }
       log(values.sheet, 'sheet');
     } catch (err: any) {
+      css_create_diagnostics.addDiagnostic({
+        code: 'rule-creation-error',
+        severity: 'error',
+        stage: 'ruleCreation',
+        message: err instanceof Error ? err.message : 'Unexpected error while inserting a CSS rule.',
+        details: {
+          rule,
+          error: err instanceof Error ? err.stack || err.message : String(err),
+        },
+        suggestedFix: 'Inspect the generated rule text and verify that it is valid CSS before insertion.',
+        recoverable: true,
+      });
       console_log.consoleLog('error', { err: err });
     }
   },

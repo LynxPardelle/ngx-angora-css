@@ -2,6 +2,7 @@
 import { ValuesSingleton } from '../../../singletons/valuesSingleton';
 /* Interfaces */
 /* Functions */
+import { css_create_diagnostics } from '../../../functions/css_create_diagnostics';
 import { console_log } from '../../../functions/console_log';
 import { abreviation_traductors } from '../../abreviation_traductors';
 import { manage_cache } from '../../manage_cache';
@@ -11,7 +12,7 @@ import { look4BPNVals } from './look4BPNVals';
 import { property2ValueJoiner } from './property2ValueJoiner';
 import { valueTraductor } from './valueTraductor';
 /* Types */
-import { TBPS, TLogPartsOptions } from '../../../types';
+import { TBPS, TClassCreationDiagnostic, TLogPartsOptions } from '../../../types';
 const values: ValuesSingleton = ValuesSingleton.getInstance();
 const log = (t: any, p?: TLogPartsOptions) => {
   console_log.betterLogV1('parseClass', t, p);
@@ -22,7 +23,78 @@ const multiLog = (toLog: [any, TLogPartsOptions?][]) => {
 interface IparseClassReturn {
   classes2CreateStringed: string;
   bps?: TBPS;
+  status: 'created' | 'duplicate' | 'invalid';
 }
+
+type TParseClassOptions = {
+  mutateState?: boolean;
+  requireSheet?: boolean;
+  checkDuplicates?: boolean;
+  recordDiagnostics?: boolean;
+  diagnostics?: TClassCreationDiagnostic[];
+};
+
+const buildEmptyResult = (status: IparseClassReturn['status'] = 'invalid'): IparseClassReturn => ({
+  classes2CreateStringed: '',
+  status,
+});
+
+const cloneDiagnostic = (diagnostic: TClassCreationDiagnostic): TClassCreationDiagnostic => ({
+  ...diagnostic,
+  details: diagnostic.details ? { ...diagnostic.details } : undefined,
+});
+
+const recordDiagnostic = (diagnostic: TClassCreationDiagnostic, options: TParseClassOptions): void => {
+  if (Array.isArray(options.diagnostics)) {
+    options.diagnostics.push(cloneDiagnostic(diagnostic));
+  }
+
+  if (options.recordDiagnostics !== false) {
+    css_create_diagnostics.addDiagnostic(diagnostic);
+  }
+};
+
+const reportInvalidClass = (
+  options: TParseClassOptions,
+  className: string,
+  code: string,
+  message: string,
+  details?: Record<string, unknown>,
+  suggestedFix: string = 'Review the class tokens before retrying CSS creation.'
+): void => {
+  recordDiagnostic(
+    {
+    code,
+    severity: 'warning',
+    stage: 'parseClass',
+    className,
+    message,
+    details,
+    suggestedFix,
+    recoverable: true,
+    },
+    options
+  );
+};
+
+const findMatchingCreatedComboKey = (value: string): string | undefined => {
+  if (typeof value !== 'string' || value.length === 0) {
+    return undefined;
+  }
+
+  let matchedComboKey: string | undefined;
+  for (const comboKey of values.combosCreatedKeys) {
+    if (!value.includes(comboKey)) {
+      continue;
+    }
+
+    if (!matchedComboKey || comboKey.length > matchedComboKey.length) {
+      matchedComboKey = comboKey;
+    }
+  }
+
+  return matchedComboKey;
+};
 /**
  * Parses a CSS class string and converts it into valid CSS rules with breakpoint support.
  *
@@ -53,94 +125,140 @@ interface IparseClassReturn {
  * - Maintains cache of already created classes to prevent duplicates
  * - Supports encrypted combo classes when encryption is enabled
  */
-export const parseClass = (class2Create: string, isClean: boolean = true): IparseClassReturn => {
-  // Early validation
-  if (!class2Create || !values.sheet) {
-    return {
-      classes2CreateStringed: '',
-    };
+export const parseClass = (
+  class2Create: string,
+  isClean: boolean = true,
+  options: TParseClassOptions = {}
+): IparseClassReturn => {
+  const parseOptions: TParseClassOptions = {
+    mutateState: options.mutateState ?? true,
+    requireSheet: options.requireSheet ?? (options.mutateState ?? true),
+    checkDuplicates: options.checkDuplicates ?? isClean,
+    recordDiagnostics: options.recordDiagnostics ?? true,
+    diagnostics: options.diagnostics,
+  };
+
+  if (typeof class2Create !== 'string' || class2Create.trim().length === 0) {
+    reportInvalidClass(
+      parseOptions,
+      String(class2Create),
+      'invalid-class-input',
+      'Skipped CSS creation because the class name is empty or not a string.',
+      { class2Create },
+      'Ensure every class passed to cssCreate is a non-empty string.'
+    );
+    return buildEmptyResult();
   }
+
+  const originalClassName = class2Create.trim();
+  class2Create = originalClassName;
+
+  if (parseOptions.requireSheet && !values.sheet) {
+    recordDiagnostic(
+      {
+        code: 'stylesheet-missing',
+        severity: 'error',
+        stage: 'setup',
+        className: originalClassName,
+        message: 'Skipped CSS creation because the main stylesheet is not available.',
+        suggestedFix: 'Make sure the managed stylesheet exists before requesting new CSS rules.',
+        recoverable: false,
+      },
+      parseOptions
+    );
+    return buildEmptyResult();
+  }
+
   multiLog([[isClean, 'isClean']]);
-  // Check if already created CssClass and return if it is
-  if (isClean) {
-    // Check cache first for instant response
-    if (values.cacheActive) {
+  if (parseOptions.checkDuplicates) {
+    if (parseOptions.mutateState && values.cacheActive) {
       const cachedResult = manage_cache.getCached<{
         classes2CreateStringed: string;
         bps?: TBPS;
-      }>(class2Create, 'parseClass');
+        status: 'created';
+      }>(originalClassName, 'parseClass');
       if (cachedResult) {
+        if (parseOptions.mutateState) {
+          values.alreadyCreatedClasses.add(originalClassName);
+        }
         return {
           classes2CreateStringed: cachedResult.classes2CreateStringed,
           bps: cachedResult.bps,
+          status: 'created',
         };
       }
     }
     if (
-      values.alreadyCreatedClasses.has(class2Create) ||
-      [...values.sheet.cssRules].find((i: CSSRule) =>
-        i.cssText.split(' ').find((aC: string) => {
-          return aC.replace('.', '') === class2Create;
-        })
-      )
+      values.alreadyCreatedClasses.has(originalClassName) ||
+      (!!values.sheet &&
+        [...values.sheet.cssRules].find((i: CSSRule) =>
+          i.cssText.split(' ').find((aC: string) => {
+            return aC.replace('.', '') === originalClassName;
+          })
+        ))
     ) {
-      return {
-        classes2CreateStringed: '',
-      };
-    } else {
-      values.alreadyCreatedClasses.add(class2Create);
+      if (parseOptions.mutateState) {
+        values.alreadyCreatedClasses.add(originalClassName);
+      }
+      return buildEmptyResult('duplicate');
     }
-  } else {
-    values.alreadyCreatedClasses.add(class2Create);
   }
+
   log(values.alreadyCreatedClasses, 'alreadyCreatedClasses');
-  // Get the class for the final string from the original class2Create after the conversion of the abreviations
-  let class2CreateStringed = '.' + class2Create;
+  let class2CreateStringed = '.' + originalClassName;
   log(class2CreateStringed, 'class2CreateStringed');
-  // De-abreviate the class if it has abreviations
+
   if (!class2Create.includes(values.indicatorClass)) {
-    let abbrClss = Object.keys(values.abreviationsClasses).find(aC => class2Create.includes(aC));
-    if (!!abbrClss) {
-      class2Create = class2Create.replace(abbrClss, values.abreviationsClasses[abbrClss]);
+    const abbrClss = Object.keys(values.abreviationsClasses).find(aC => class2Create.includes(aC));
+    const abreviationValue = abbrClss ? values.abreviationsClasses[abbrClss] : undefined;
+    if (abbrClss && typeof abreviationValue === 'string' && abreviationValue.length > 0) {
+      class2Create = class2Create.replace(abbrClss, abreviationValue);
     }
   }
-  // Split to decompose and interpret the class to create
-  /*
-    [0] => indicatorClass
-    [1] => css property
-    [2] => bp or the first|unique value
-   */
+
   const class2CreateSplited = class2Create.split('-');
   log(class2CreateSplited, 'class2CreateSplited');
-  // Convert the pseudos from camel case into valid pseudo and separate pseudos and combinators from the property
-  let comboCreatedKey: string | undefined;
-  for (const cC of values.combosCreatedKeys) {
-    if (class2Create.includes(cC)) {
-      comboCreatedKey = cC;
-      break;
-    }
+  if (class2CreateSplited.length < 2 || typeof class2CreateSplited[1] !== 'string' || !class2CreateSplited[1]) {
+    reportInvalidClass(
+      parseOptions,
+      originalClassName,
+      'invalid-class-structure',
+      'Skipped CSS creation because the class does not contain a valid property token.',
+      { class2CreateSplited },
+      'Use a class shape like indicator-property-value so the parser can resolve the property.'
+    );
+    return buildEmptyResult();
   }
+
+  const comboCreatedKey = findMatchingCreatedComboKey(class2Create);
   if (comboCreatedKey) {
-    let comboKeyReg = new RegExp(comboCreatedKey, 'g');
+    const comboKeyReg = new RegExp(comboCreatedKey, 'g');
     class2CreateSplited[1] = class2CreateSplited[1].replace(comboKeyReg, values.encryptComboCreatedCharacters);
   }
 
-  // Convert pseudos and process selectors
   const classWithPseudosConvertedAndSELSplited = convertPseudos(class2CreateSplited[1])
     .replace(/SEL/g, values.separator)
     .split(`${values.separator}`);
 
   log(classWithPseudosConvertedAndSELSplited, 'classWithPseudosConvertedAndSELSplited');
 
-  // Declaring the property to create the combinations and use Pseudos
   const property = classWithPseudosConvertedAndSELSplited[0];
   log(property, 'property');
+  if (!property) {
+    reportInvalidClass(
+      parseOptions,
+      originalClassName,
+      'missing-property-token',
+      'Skipped CSS creation because the parser could not resolve a property token.',
+      { class2CreateSplited, classWithPseudosConvertedAndSELSplited },
+      'Make sure the class contains a known property segment before the value tokens.'
+    );
+    return buildEmptyResult();
+  }
 
-  // Optimized specify generation
   const specifyParts = classWithPseudosConvertedAndSELSplited.slice(1);
   let specify: string = abreviation_traductors.abreviationTraductor(specifyParts.join(''));
 
-  // Handle combo key restoration
   if (comboCreatedKey) {
     const comboKeyCypherReg = values.cacheActive
       ? (manage_cache.getCached<RegExp>(
@@ -165,8 +283,7 @@ export const parseClass = (class2Create: string, isClean: boolean = true): Ipars
     ]);
   }
 
-  // Decrypt the combo of the class if it has been encrypted with the encryptCombo flag
-  if (!!specify && values.encryptCombo) {
+  if (!!specify && comboCreatedKey) {
     multiLog([
       [specify, 'specify PreDecryptCombo'],
       [class2Create, 'class2Create PreDecryptCombo'],
@@ -180,7 +297,6 @@ export const parseClass = (class2Create: string, isClean: boolean = true): Ipars
     ]);
   }
 
-  // Getting if the class has breakPoints, the value and the second value if it has
   const bpResult = look4BPNVals(class2CreateSplited);
   const [hasBP, propertyValues]: [boolean, string[]] = Object.values(bpResult) as [boolean, string[]];
 
@@ -189,7 +305,6 @@ export const parseClass = (class2Create: string, isClean: boolean = true): Ipars
     [propertyValues, 'propertyValues'],
   ]);
 
-  // Optimized value translation with parallel processing
   const translatedValues = propertyValues.map((pv: string) => {
     return valueTraductor(pv, property);
   });
@@ -203,12 +318,35 @@ export const parseClass = (class2Create: string, isClean: boolean = true): Ipars
     [class2CreateSplited, 'class2CreateStringed BeforeProperty2ValueJoiner'],
   ]);
 
-  // Joining the property and the values
-  class2CreateStringed += property2ValueJoiner(property, class2CreateSplited, class2Create, translatedValues, specify);
+  const joinedRule = property2ValueJoiner(
+    property,
+    class2CreateSplited,
+    class2Create,
+    translatedValues,
+    specify,
+    `${class2CreateStringed}${specify}`
+  );
+  if (!joinedRule) {
+    reportInvalidClass(
+      parseOptions,
+      originalClassName,
+      'invalid-rule-fragment',
+      'Skipped CSS creation because the parser could not build a CSS rule fragment.',
+      {
+        property,
+        class2CreateSplited,
+        translatedValues,
+        specify,
+      },
+      'Check that the property and values are valid and resolve to a concrete CSS declaration.'
+    );
+    return buildEmptyResult();
+  }
+
+  class2CreateStringed += joinedRule;
 
   log(class2CreateStringed, 'class2CreateStringed AfterProperty2ValueJoiner');
 
-  // Put the important flag if it is active
   if (!!values.importantActive) {
     const importantRegex = values.cacheActive
       ? (manage_cache.getCached<RegExp>(
@@ -217,7 +355,7 @@ export const parseClass = (class2Create: string, isClean: boolean = true): Ipars
           () => new RegExp('\\s?!important\\s?', 'g')
         ) as RegExp)
       : new RegExp('\\s?!important\\s?', 'g');
-    for (let cssProperty of class2CreateStringed.split(';')) {
+    for (const cssProperty of class2CreateStringed.split(';')) {
       if (!cssProperty.includes('!important') && cssProperty.length > 5) {
         class2CreateStringed = class2CreateStringed
           .replace(cssProperty, cssProperty + ' !important')
@@ -240,7 +378,6 @@ export const parseClass = (class2Create: string, isClean: boolean = true): Ipars
         : new RegExp(values.separator, 'g');
       class2CreateStringed = class2CreateStringed.replace(separatorRegex, '');
 
-      // Optimized breakpoint assignment
       const targetBp = class2CreateSplited[2];
       for (let i = 0; i < values.bps.length; i++) {
         if (values.bps[i].bp === targetBp) {
@@ -255,9 +392,18 @@ export const parseClass = (class2Create: string, isClean: boolean = true): Ipars
     } else {
       classes2CreateStringed += class2CreateStringed + values.separator;
     }
+  } else {
+    reportInvalidClass(
+      parseOptions,
+      originalClassName,
+      'invalid-css-rule-shape',
+      'Skipped CSS creation because the generated CSS rule is incomplete.',
+      { class2CreateStringed },
+      'Inspect the generated property/value combination and make sure it produces a valid CSS block.'
+    );
+    return buildEmptyResult();
   }
 
-  // Final cleanup
   classes2CreateStringed = classes2CreateStringed.replace(/\s+/g, ' ');
 
   multiLog([[classes2CreateStringed, 'classes2CreateStringed AfterSeparators']]);
@@ -265,10 +411,15 @@ export const parseClass = (class2Create: string, isClean: boolean = true): Ipars
   const result = {
     classes2CreateStringed: classes2CreateStringed,
     bps: bps,
+    status: 'created' as const,
   };
 
-  if (values.cacheActive) {
-    manage_cache.addCached(class2Create, 'parseClass', result);
+  if (parseOptions.mutateState) {
+    values.alreadyCreatedClasses.add(originalClassName);
+  }
+
+  if (parseOptions.mutateState && values.cacheActive) {
+    manage_cache.addCached(originalClassName, 'parseClass', result);
   }
 
   return result;

@@ -1,6 +1,7 @@
 import { ValuesSingleton } from '../../../singletons/valuesSingleton';
 /* Functions */
 import { abreviation_traductors } from '../../abreviation_traductors';
+import { css_create_diagnostics } from '../../../functions/css_create_diagnostics';
 import { console_log } from '../../console_log';
 import { color_transform } from './../../color_transform';
 /* Types */
@@ -13,6 +14,18 @@ const log = (t: any, p?: TLogPartsOptions) => {
 };
 const multiLog = (toLog: [any, TLogPartsOptions?][]) => {
   console_log.multiBetterLogV1('valueTraductor', toLog);
+};
+
+const normalizeColorValue = (realColor: string): string => {
+  if (realColor.startsWith('rgb') && !realColor.includes('rgba')) {
+    return `rgba(${realColor}, 1)`;
+  }
+
+  if (realColor.startsWith('#')) {
+    return `rgba(${color_transform.colorToRGB(realColor)}, 1)`;
+  }
+
+  return realColor;
 };
 /**
  * Translates and processes a value string by applying various transformations.
@@ -41,9 +54,42 @@ const multiLog = (toLog: [any, TLogPartsOptions?][]) => {
  * - opacity parsing is skipped for properties containing 'content'
  */
 export const valueTraductor = (value: string, property: string): string => {
+  if (typeof value !== 'string') {
+    css_create_diagnostics.addDiagnostic({
+      code: 'invalid-value-input',
+      severity: 'warning',
+      stage: 'valueTraductor',
+      message: 'Skipped value translation because the value is not a string.',
+      details: {
+        value,
+        property,
+      },
+      suggestedFix: 'Ensure translated values are strings before calling the value translator.',
+      recoverable: true,
+    });
+    return '';
+  }
+
+  const normalizedProperty = typeof property === 'string' ? property : '';
+  if (!normalizedProperty) {
+    css_create_diagnostics.addDiagnostic({
+      code: 'invalid-property-input',
+      severity: 'warning',
+      stage: 'valueTraductor',
+      message: 'Skipped value translation because the property token is missing.',
+      details: {
+        value,
+        property,
+      },
+      suggestedFix: 'Validate that every class resolves to a property before translating values.',
+      recoverable: true,
+    });
+    return value;
+  }
+
   multiLog([
     [value, 'value'],
-    [property, 'property'],
+    [normalizedProperty, 'property'],
   ]);
 
   // Apply abbreviation translation
@@ -56,7 +102,7 @@ export const valueTraductor = (value: string, property: string): string => {
   log(value, 'value After AbreviationTraductor');
 
   // Skip opacity and color processing for content properties
-  if (property.includes('content')) {
+  if (normalizedProperty.includes('content')) {
     return value;
   }
 
@@ -64,6 +110,14 @@ export const valueTraductor = (value: string, property: string): string => {
   log(value, 'value Before opacity and Colors');
   value = opacityParser(value);
   log(value, 'value After opacity and Colors');
+
+  const directColorKey = value.replace(/\s/g, '');
+  const directColorValue = values.colors[directColorKey];
+  if (typeof directColorValue === 'string' && directColorValue.length > 0) {
+    const normalizedDirectColor = normalizeColorValue(directColorValue);
+    log(normalizedDirectColor, 'normalizedDirectColor');
+    return normalizedDirectColor;
+  }
 
   let itHasAColorToReplace: boolean = false;
   for (let i = 0; i < values.colorNames.length; i++) {
@@ -86,16 +140,8 @@ export const valueTraductor = (value: string, property: string): string => {
         const realColor = values.colors[colorKey];
         log(realColor, 'realColor');
 
-        if (realColor) {
-          let realColorValue: string;
-
-          if (realColor.startsWith('rgb') && !realColor.includes('rgba')) {
-            realColorValue = `rgba(${realColor}, 1)`;
-          } else if (realColor.startsWith('#')) {
-            realColorValue = `rgba(${color_transform.colorToRGB(realColor)}, 1)`;
-          } else {
-            realColorValue = realColor;
-          }
+        if (typeof realColor === 'string' && realColor.length > 0) {
+          const realColorValue = normalizeColorValue(realColor);
 
           log(realColorValue, 'realColorValue');
           value = value.replace(match, realColorValue);
@@ -131,6 +177,10 @@ export const valueTraductor = (value: string, property: string): string => {
  * - Processes multiple opacity occurrences efficiently
  */
 export const opacityParser = (value: string): string => {
+  if (typeof value !== 'string' || value.length === 0) {
+    return '';
+  }
+
   log([[value, 'value']]);
   const hasOpacity = value.includes('OPA');
   log([hasOpacity, 'hasOpacity']);

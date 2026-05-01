@@ -1,3 +1,4 @@
+import { css_create_diagnostics } from '../css_create_diagnostics';
 /* Singletons */
 import { ValuesSingleton } from '../../singletons/valuesSingleton';
 /* Funtions */
@@ -14,9 +15,24 @@ const multiLog = (toLog: [any, TLogPartsOptions?][]) => {
 export const createMediaRule = (rule: string): void => {
   log(rule, 'rule');
   let index: number | undefined;
-  if (!values.responsiveSheet) return;
+  if (!values.responsiveSheet || typeof rule !== 'string' || rule.trim().length === 0) return;
+  const selectorFragment = rule.split('{')[0]?.replace('\n', '').replace(/\s+/g, ' ') || '';
+  if (!selectorFragment) {
+    css_create_diagnostics.addDiagnostic({
+      code: 'invalid-media-rule-fragment',
+      severity: 'warning',
+      stage: 'ruleCreation',
+      message: 'Skipped responsive CSS rule insertion because the selector fragment is empty.',
+      details: {
+        rule,
+      },
+      suggestedFix: 'Inspect the generated media rule and make sure it contains a selector before the declaration block.',
+      recoverable: true,
+    });
+    return;
+  }
   let originalRule: any = [...values.responsiveSheet.cssRules].some((cssRule: any, i: number) => {
-    if (cssRule.cssText.includes(rule.split('{')[0].replace('\n', '').replace(/\s+/g, ' '))) {
+    if (cssRule.cssText.includes(selectorFragment)) {
       index = i;
       return true;
     } else {
@@ -27,11 +43,11 @@ export const createMediaRule = (rule: string): void => {
         i =>
           i.cssText
             /* .includes(
-                    rule.split('{')[0].replace('\n', '').replace(/\s+/g, ' ')
+                    selectorFragment
                   ) */
             .split(' ')
             .find((aC: string) => {
-              return aC.replace('.', '') === rule.split('{')[0].replace('\n', '').replace(/\s+/g, ' ');
+              return aC.replace('.', '') === selectorFragment;
             })
         /*
             i.cssText.split(' ').find((aC: string) => {

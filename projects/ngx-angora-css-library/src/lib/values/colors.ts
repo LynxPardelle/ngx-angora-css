@@ -34,8 +34,10 @@ export const allColors = {
   bangrank: '#161B17', // Info
   secbank: '#F0B566', // Warning
   dank: '#000000', // Danger When combined to ankcent, it will be dark red
-  dankcent: 'linear-gradient(220deg, #D01033 35%,#000000 55%)',
+  dankcent: 'linear-gradient(220deg, #D01033 35%,#000 55%)',
   revdankcent: 'linear-gradient(220deg, #000 35%,#D01033 55%)',
+  gradsecbank: 'linear-gradient(140deg, #F0B566 35%,#000 55%)',
+  revgradsecbank: 'linear-gradient(140deg, #000 35%,#F0B566 55%)',
   ligthora: '#F4EBEC', // Light
   dagora: '#100809', // Dark
   /* basicColorsCSS */ /* (\s)(#[0-9A-Fa-f]+)\s([0-9]*,?)*\n*\s*\n*\s* */ /* :$1'$2', */

@@ -1,11 +1,12 @@
 import { Injectable } from '@angular/core';
 /* Interfaces */
-import { IAbreviationTraductor, IConsoleParser, IPseudo } from './interfaces';
+import { IAbreviationTraductor, IClassValidationOptions, IConsoleParser, IPseudo } from './interfaces';
 /* Singleton */
 import { ValuesSingleton } from './singletons/valuesSingleton';
 /* Functions */
 import { abreviation_traductors } from './functions/abreviation_traductors';
 import { color_transform } from './functions/color_transform';
+import { css_create_diagnostics } from './functions/css_create_diagnostics';
 import { console_log } from './functions/console_log';
 import { css_camel } from './functions/css-camel';
 import { cssCreate } from './functions/cssCreate';
@@ -20,6 +21,7 @@ import { manage_CSSRules } from './functions/manage_CSSRules';
 import { manage_sheet } from './functions/manage_sheet';
 import { managePartsSections } from './functions/managePartsNSectionsToSeeOnLog';
 import { utility_configurations } from './functions/utility_configurations';
+import { validate_class } from './functions/validate_class';
 /* Types */
 import { TLogPartsOptions, TLogSectionOptions } from './types';
 @Injectable({
@@ -90,6 +92,12 @@ export class NgxAngoraService {
   public getColorValue = (color: string) => manage_colors.getColorValue(color);
   public getAlreadyCreatedClasses = () => manage_classes.getAlreadyCreatedClasses();
   public getSheet = () => manage_sheet.getSheet();
+  public getLastCssCreateReport = () => css_create_diagnostics.getLastReport();
+  public clearCssCreateReport = () => css_create_diagnostics.clear();
+  public validateClass = (className: string, options?: IClassValidationOptions) =>
+    validate_class.validateClass(className, options);
+  public validateClasses = (classNames: string[], options?: IClassValidationOptions) =>
+    validate_class.validateClasses(classNames, options);
   /* Update */
   public updateColor = (color: string, value: string) => manage_colors.updateColor(color, value);
   public updateColors = (newColors: any) => manage_colors.updateColors(newColors);

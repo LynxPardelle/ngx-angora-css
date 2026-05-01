@@ -1,5 +1,6 @@
 import { ValuesSingleton } from '../../../singletons/valuesSingleton';
 /* Funtions */
+import { css_create_diagnostics } from '../../../functions/css_create_diagnostics';
 import { console_log } from '../../console_log';
 import { manage_cache } from '../../manage_cache';
 import { comboParser } from './comboParser';
@@ -12,6 +13,23 @@ const log = (t: any, p?: TLogPartsOptions) => {
 const multiLog = (toLog: [any, TLogPartsOptions?][]) => {
   console_log.multiBetterLogV1('getNewClasses2Create', toLog);
 };
+
+const findMatchingCombo = (item: string): string | undefined => {
+  let matchedCombo: string | undefined;
+
+  for (const comboName of values.combosKeys) {
+    if (item !== comboName && !item.startsWith(comboName)) {
+      continue;
+    }
+
+    if (!matchedCombo || comboName.length > matchedCombo.length) {
+      matchedCombo = comboName;
+    }
+  }
+
+  return matchedCombo;
+};
+
 export const getNewClasses2Create = (): string[] => {
   multiLog([
     [values.combos, 'combos'],
@@ -42,13 +60,30 @@ export const getNewClasses2Create = (): string[] => {
   for (let i = 0; i < allElementsWithClassAtribute.length; i++) {
     const value = allElementsWithClassAtribute[i] as HTMLElement;
     for (const item of allElementsWithClassAtribute[i].classList) {
-      let comb: string | undefined;
-      for (const cs of values.combosKeys) {
-        if (item.includes(cs)) {
-          comb = cs;
-          break;
-        }
+      const itemParts = item.split('-');
+      const isManagedClassCandidate =
+        item !== values.indicatorClass &&
+        (item.startsWith(values.indicatorClass) || values.abreviationsClassesKeys.has(itemParts[0]));
+
+      if (isManagedClassCandidate && (itemParts.length < 2 || !itemParts[1])) {
+        css_create_diagnostics.addDiagnostic({
+          code: 'invalid-class-discovered',
+          severity: 'warning',
+          stage: 'discovery',
+          className: item,
+          message: 'Skipped a managed class candidate because it does not contain a property token.',
+          details: {
+            elementTagName: value.tagName,
+            elementClassName: value.className,
+          },
+          suggestedFix: 'Use a class shape like indicator-property-value so discovery does not forward malformed classes.',
+          recoverable: true,
+        });
+        continue;
       }
+
+      const comb = findMatchingCombo(item);
+
       if (!!comb && values.combos[comb]) {
         comboParser(item, comb, allElementsWithClassAtribute[i]).forEach((c: string) => {
           if (!classes2Create.has(c) && !values.alreadyCreatedClasses.has(c)) {
@@ -59,8 +94,7 @@ export const getNewClasses2Create = (): string[] => {
         !comb &&
         !classes2Create.has(item) &&
         !values.alreadyCreatedClasses.has(item) &&
-        item !== values.indicatorClass &&
-        (item.startsWith(values.indicatorClass) || values.abreviationsClassesKeys.has(item.split('-')[0]))
+        isManagedClassCandidate
       ) {
         classes2Create.add(item);
       }

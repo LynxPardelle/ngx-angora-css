@@ -44,7 +44,6 @@ export const comboParser = (class2Create: string, comb: string, class2CreateElem
 
   // Stage 2: Initial validation and setup
   const comboClasses2Create: string[] = [];
-  const comboClassesSet: Set<string> = new Set(); // For O(1) duplicate checking
 
   // Optimize combo index lookup
   const combosKeysArray = Array.from(values.combosKeys);
@@ -127,19 +126,27 @@ export const comboParser = (class2Create: string, comb: string, class2CreateElem
 
       // Stage 10: Create new abbreviation if needed
       if (!alreadyABBRCombo) {
-        const keyToStore = encryptCombo ? combCreatedKey : class2Create;
-        combosCreated[keyToStore] = class2Create;
+        // Always keep a safe internal combo key for selector generation so value-heavy
+        // combo instances do not leak `_` / `__` tokens into selector translation.
+        combosCreated[combCreatedKey] = class2Create;
+        if (!encryptCombo) {
+          combosCreated[class2Create] = class2Create;
+        }
         combosCreatedKeysSet.add(combCreatedKey);
 
         multiLog([
-          [keyToStore, 'stored combo key'],
+          [combCreatedKey, 'stored combo key'],
           [class2Create, 'stored combo value'],
           [combosCreatedKeysSet.size, 'updated combo keys count'],
         ]);
       }
 
-      // Stage 11: Determine final abbreviation
-      const comboABBR: string = encryptCombo ? combCreatedKey : class2Create;
+      if (!encryptCombo && !combosCreated[class2Create]) {
+        combosCreated[class2Create] = class2Create;
+      }
+
+      // Stage 11: Always use the safe combo key inside selector placeholders.
+      const comboABBR: string = combCreatedKey;
 
       multiLog([
         [comboABBR, 'final combo abbreviation'],

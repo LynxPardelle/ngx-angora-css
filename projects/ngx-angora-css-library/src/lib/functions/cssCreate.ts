@@ -1,6 +1,7 @@
 /* Singletons */
 import { ValuesSingleton } from '../singletons/valuesSingleton';
 /* Funtions */
+import { css_create_diagnostics } from './css_create_diagnostics';
 import { console_log } from './console_log';
 import { css_camel } from './css-camel';
 import { doCssCreate } from './main/doCssCreate';
@@ -74,6 +75,19 @@ export const cssCreate = {
         return doCssCreate(values.timesCSSCreated, (updateClasses2Create as string[]) || undefined);
       }
     } catch (err) {
+      css_create_diagnostics.startRun(Array.isArray(updateClasses2Create) ? updateClasses2Create : []);
+      css_create_diagnostics.addDiagnostic({
+        code: 'css-create-setup-error',
+        severity: 'error',
+        stage: 'setup',
+        message: err instanceof Error ? err.message : 'Unexpected setup error while running cssCreate.',
+        details: {
+          error: err instanceof Error ? err.stack || err.message : String(err),
+        },
+        suggestedFix: 'Check that the managed stylesheets and global configuration are available before running cssCreate.',
+        recoverable: false,
+      });
+      css_create_diagnostics.completeRun();
       console_log.consoleLog('error', { err: err });
     }
   },

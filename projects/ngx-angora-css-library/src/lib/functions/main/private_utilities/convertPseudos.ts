@@ -42,6 +42,10 @@ export const convertPseudos = (thing: string, remove: boolean = false): string =
     [remove, 'remove'],
   ]);
 
+  if (typeof thing !== 'string' || thing.length === 0) {
+    return '';
+  }
+
   // Find matching pseudos efficiently
   const pseudoFiltereds: IPseudo[] = [];
   for (const pseudo of values.pseudos) {

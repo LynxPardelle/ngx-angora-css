@@ -1,3 +1,4 @@
+import { css_create_diagnostics } from '../../../functions/css_create_diagnostics';
 import { console_log } from '../../console_log';
 /* Types */
 import { TLogPartsOptions } from '../../../types';
@@ -8,6 +9,22 @@ const multiLog = (toLog: [any, TLogPartsOptions?][]) => {
   console_log.multiBetterLogV1('valueComboReplacer', toLog);
 };
 export const valueComboReplacer = (c: string, vals: string[]): string => {
+  if (typeof c !== 'string' || !Array.isArray(vals)) {
+    css_create_diagnostics.addDiagnostic({
+      code: 'invalid-combo-replacement-input',
+      severity: 'warning',
+      stage: 'valueComboReplacer',
+      message: 'Skipped combo replacement because the input values are not valid.',
+      details: {
+        c,
+        vals,
+      },
+      suggestedFix: 'Ensure combo replacement receives a class string and an array of values.',
+      recoverable: true,
+    });
+    return typeof c === 'string' ? c : '';
+  }
+
   multiLog([
     [c, 'c'],
     [vals, 'vals'],
@@ -19,7 +36,32 @@ export const valueComboReplacer = (c: string, vals: string[]): string => {
     if (!!matches) {
       for (let match of matches) {
         log(match, 'match');
-        let val = parseInt(match.split('VAL')[1].split('DEF')[0]);
+        const matchAfterVAL = match.split('VAL')[1];
+        if (!matchAfterVAL) {
+          css_create_diagnostics.addDiagnostic({
+            code: 'invalid-combo-replacement-token',
+            severity: 'warning',
+            stage: 'valueComboReplacer',
+            message: 'Skipped a malformed combo replacement token because it does not contain a VAL index.',
+            details: { match },
+            suggestedFix: 'Check that combo replacement tokens include a numeric VAL prefix.',
+            recoverable: true,
+          });
+          continue;
+        }
+        let val = parseInt(matchAfterVAL.split('DEF')[0]);
+        if (Number.isNaN(val)) {
+          css_create_diagnostics.addDiagnostic({
+            code: 'invalid-combo-replacement-index',
+            severity: 'warning',
+            stage: 'valueComboReplacer',
+            message: 'Skipped a malformed combo replacement token because its index is not numeric.',
+            details: { match },
+            suggestedFix: 'Use numeric indexes in VAL replacement tokens.',
+            recoverable: true,
+          });
+          continue;
+        }
         log(val, 'val');
         let valueToMatch = `VAL${val}(DEF[^D]*(?:D(?!EF)[^D]*)*DEF)?`;
         let valueReg = new RegExp(valueToMatch, 'g');

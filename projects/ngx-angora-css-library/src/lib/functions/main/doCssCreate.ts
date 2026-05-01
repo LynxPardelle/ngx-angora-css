@@ -3,6 +3,7 @@ import { IBPS } from '../../interfaces';
 /* Singletons */
 import { ValuesSingleton } from '../../singletons/valuesSingleton';
 /* Funtions */
+import { css_create_diagnostics } from '../css_create_diagnostics';
 import { console_log } from '../console_log';
 /* Utilities */
 import { getNewClasses2Create } from './private_utilities/getNewClasses2Create';
@@ -18,27 +19,51 @@ const multiLog = (toLog: [any, TLogPartsOptions?][]) => {
   console_log.multiBetterLogV1('doCssCreate', toLog);
 };
 export const doCssCreate = (id: number, updateClasses2Create?: string[]): number => {
+  css_create_diagnostics.startRun(updateClasses2Create || []);
   try {
     log(updateClasses2Create, `updateClasses2Create [id:${id}]`);
     const startTimeCSSCreate = performance.now();
     const classes2Create: string[] = updateClasses2Create || getNewClasses2Create();
+    css_create_diagnostics.setInputClasses(classes2Create);
     log(classes2Create, `classes2Create [id:${id}]`);
     const classes2CreateStringed: string[] = [];
     const bpsStringed: IBPS[] = values.bps.map((b: any) => b);
     for (let class2Create of classes2Create) {
-      let returnedClasses2CreateStringed: string;
-      let returnedBpsStringed: IBPS | undefined;
-      [returnedClasses2CreateStringed, returnedBpsStringed] = Object.values(
-        parseClass(class2Create, !updateClasses2Create)
-      );
-      classes2CreateStringed.push(returnedClasses2CreateStringed);
-      if (returnedBpsStringed) {
-        for (let bps of bpsStringed) {
-          if (bps.bp === returnedBpsStringed.bp) {
-            bps.class2Create += returnedBpsStringed.class2Create;
-            break;
+      css_create_diagnostics.startClass(class2Create);
+      try {
+        const parsedResult = parseClass(class2Create, !updateClasses2Create);
+        const { classes2CreateStringed: returnedClasses2CreateStringed, bps: returnedBpsStringed, status } = parsedResult;
+
+        if (status === 'created') {
+          classes2CreateStringed.push(returnedClasses2CreateStringed);
+          if (returnedBpsStringed) {
+            for (let bps of bpsStringed) {
+              if (bps.bp === returnedBpsStringed.bp) {
+                bps.class2Create += returnedBpsStringed.class2Create;
+                break;
+              }
+            }
           }
+          css_create_diagnostics.recordClassCreated(class2Create);
+        } else {
+          css_create_diagnostics.recordClassSkipped(class2Create);
         }
+      } catch (error) {
+        css_create_diagnostics.recordClassFailed(class2Create);
+        css_create_diagnostics.addDiagnostic({
+          code: 'class-processing-error',
+          severity: 'error',
+          stage: 'cssCreate',
+          className: class2Create,
+          message: error instanceof Error ? error.message : 'Unexpected error while processing the class.',
+          details: {
+            error: error instanceof Error ? error.stack || error.message : String(error),
+            cssCreateId: id,
+          },
+          suggestedFix: 'Inspect the class syntax and the diagnostics report for the failing stage, then retry the CSS creation.',
+          recoverable: true,
+        });
+        console_log.consoleLog('error', { err: error, class2Create: class2Create, stage: 'doCssCreate.classLoop' });
       }
     }
     multiLog([
@@ -70,8 +95,22 @@ export const doCssCreate = (id: number, updateClasses2Create?: string[]): number
         cssCreateMessage.innerHTML = message;
       }
     }
+    css_create_diagnostics.completeRun();
     return Date.now();
   } catch (err) {
+    css_create_diagnostics.addDiagnostic({
+      code: 'css-create-run-error',
+      severity: 'error',
+      stage: 'cssCreate',
+      message: err instanceof Error ? err.message : 'Unexpected error while finishing cssCreate.',
+      details: {
+        error: err instanceof Error ? err.stack || err.message : String(err),
+        cssCreateId: id,
+      },
+      suggestedFix: 'Check the global setup and the diagnostics report for the current run before retrying.',
+      recoverable: false,
+    });
+    css_create_diagnostics.completeRun();
     console_log.consoleLog('error', { err: err });
     return Date.now();
   }
