@@ -14,7 +14,7 @@ const multiLog = (toLog: [any, TLogPartsOptions?][]) => {
   console_log.multiBetterLogV1('send2CreateRules', toLog);
 };
 
-export const send2CreateRules = async (classes2CreateStringed: string, bpsStringed: IBPS[]): Promise<void> => {
+export const send2CreateRules = (classes2CreateStringed: string, bpsStringed: IBPS[]): void => {
   multiLog([
     [classes2CreateStringed, 'classes2CreateStringed'],
     [bpsStringed, 'bpsStringed'],
@@ -50,7 +50,7 @@ export const send2CreateRules = async (classes2CreateStringed: string, bpsString
 
     for (const class2Create of classes2CreateStringed.split(values.separator)) {
       if (class2Create !== '') {
-        await manage_CSSRules.createCSSRules(class2Create);
+        manage_CSSRules.createCSSRules(class2Create);
       }
     }
   }
@@ -59,7 +59,7 @@ export const send2CreateRules = async (classes2CreateStringed: string, bpsString
 
     for (const class2Create of responsiveClasses2CreateStringed.split(values.separator)) {
       if (class2Create !== '') {
-        await manage_CSSRules.createCSSRules(class2Create);
+        manage_CSSRules.createCSSRules(class2Create);
       }
     }
   }

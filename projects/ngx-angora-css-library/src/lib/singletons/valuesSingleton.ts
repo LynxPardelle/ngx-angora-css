@@ -348,6 +348,10 @@ export class ValuesSingleton {
   public timesCSSCreated: number = 0;
   public timeBetweenReCreate: number = 300;
   public lastTimeCssCreateEnded: number = Date.now();
+  public cssCreateBatchDepth: number = 0;
+  public cssCreatePending: boolean = false;
+  public cssCreatePendingFullScan: boolean = false;
+  public cssCreatePendingClasses: Set<string> = new Set();
   public creationPostponed: boolean = false;
   public setTimeOutID: ReturnType<typeof setTimeout> | null = null;
   /* Recurrent Strategy */

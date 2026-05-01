@@ -45,6 +45,32 @@
 
       <section class="ASection">
         <div class="ASectionHeader">
+          <p class="ALabel">Tutorial map</p>
+          <h2 class="ank-m-0 ank-fontSize-1_45rem">Follow the library from grammar to diagnostics</h2>
+          <p class="AMuted">
+            The path below keeps the project-parent topics, but turns them into an Angular-first flow with working
+            examples and live inspection.
+          </p>
+        </div>
+
+        <div class="AResponsiveGrid">
+          @for (item of learningPath; track item.label) {
+            <article class="APathCard">
+              <span class="APathLabel">{{ item.label }}</span>
+              <h3 class="ank-m-0 ank-fontSize-1_05rem">{{ item.title }}</h3>
+              <p class="AMuted">{{ item.description }}</p>
+              <div class="AChipRow">
+                @for (token of item.tokens; track token) {
+                  <code class="AChip">{{ token }}</code>
+                }
+              </div>
+            </article>
+          }
+        </div>
+      </section>
+
+      <section class="ASection">
+        <div class="ASectionHeader">
           <p class="ALabel">Buttons and gradients</p>
           <h2 class="ank-m-0 ank-fontSize-1_45rem">Variable combos and existing button families</h2>
           <p class="AMuted">
@@ -82,7 +108,7 @@
         >
           <p class="ALabel">Preview block</p>
           <strong>Runtime class aliases keep layout tokens terse and composable.</strong>
-          <span class="ank-d-inlineMINblock ank-bg-brandAurora ank-c-fieldMist ank-fontSize-heroScale ank-rounded-pillRadius ank-boxShadow-softShadow ank-px-0_75rem ank-py-0_35rem">
+          <span class="ank-d-inlineMINblock ank-bg-brandAurora ank-c-fieldMist ank-fontSize-1_05rem ank-lineHeight-1_35 ank-rounded-1rem ank-boxShadow-softShadow ank-px-0_75rem ank-py-0_45rem">
             Value aliases cover size, radius, and shadow tokens.
           </span>
         </div>
@@ -199,6 +225,26 @@
 
       <section class="ASection">
         <div class="ASectionHeader">
+          <p class="ALabel">Performance model</p>
+          <h2 class="ank-m-0 ank-fontSize-1_45rem">Batch setup, then create only when the DOM changes</h2>
+          <p class="AMuted">
+            These are the guardrails that keep rule generation predictable in Angular apps with runtime tokens.
+          </p>
+        </div>
+
+        <div class="AResponsiveGrid">
+          @for (note of performanceNotes; track note.title) {
+            <article class="AResponsiveCard">
+              <h3 class="ank-m-0 ank-fontSize-1_05rem">{{ note.title }}</h3>
+              <p class="AMuted">{{ note.description }}</p>
+              <pre class="ACodeBlock"><code>{{ note.code }}</code></pre>
+            </article>
+          }
+        </div>
+      </section>
+
+      <section class="ASection">
+        <div class="ASectionHeader">
           <p class="ALabel">Angular directive</p>
           <h2 class="ank-m-0 ank-fontSize-1_45rem">ItExists directive handshake</h2>
           <p class="AMuted">This keeps the wrapper-specific directive visible inside the same capability showcase.</p>
@@ -291,6 +337,58 @@
           </ul>
         } @else {
           <p class="AMuted">No diagnostics were emitted in the last run.</p>
+        }
+      </section>
+
+      <section class="APanel">
+        <div class="AValidationHead">
+          <div class="ank-d-grid ank-gap-0_35rem">
+            <p class="ALabel">Debugging API</p>
+            <h2 class="ank-m-0 ank-fontSize-1_35rem">CSS creation history</h2>
+          </div>
+          <button type="button" class="AFormButton" (click)="clearCssCreateHistory()">Clear</button>
+        </div>
+
+        <div class="AMetricGrid">
+          <article class="AMetricCard">
+            <span>Runs</span>
+            <strong>{{ cssCreateDebugSummary.totalRuns }}</strong>
+          </article>
+          <article class="AMetricCard">
+            <span>Average</span>
+            <strong>{{ formatDuration(cssCreateDebugSummary.averageDurationMs) }}</strong>
+          </article>
+          <article class="AMetricCard">
+            <span>Slowest</span>
+            <strong>{{ formatDuration(cssCreateDebugSummary.slowestDurationMs) }}</strong>
+          </article>
+          <article class="AMetricCard">
+            <span>Total created</span>
+            <strong>{{ cssCreateDebugSummary.totalCreatedClasses }}</strong>
+          </article>
+        </div>
+
+        @if (cssCreateHistory.length > 0) {
+          <ul class="AList">
+            @for (run of cssCreateHistory; track run.id) {
+              <li class="ASampleItem">
+                <div class="ank-d-grid ank-gap-0_35rem">
+                  <strong>#{{ run.id }} · {{ formatDuration(run.durationMs) }}</strong>
+                  <span class="ank-fontSize-0_85rem ank-opacity-0_8">
+                    {{ formatCentralTime(run.completedAt) }} Central Time
+                  </span>
+                </div>
+                <div class="ank-d-flex ank-flexWrap-wrap ank-gap-0_5rem ank-justifyContent-flexMINend">
+                  <code class="AChip">{{ run.processedClasses }} processed</code>
+                  <code class="AChip">{{ run.createdClasses }} created</code>
+                  <code class="AChip">{{ run.skippedClasses }} skipped</code>
+                  <code class="AChip">{{ run.failedClasses }} failed</code>
+                </div>
+              </li>
+            }
+          </ul>
+        } @else {
+          <p class="AMuted">No cssCreate runs are stored in the debug history.</p>
         }
       </section>
 

@@ -18,6 +18,17 @@ const log = (t: any, p?: TLogPartsOptions) => {
 export const cssCreate = {
   cssCreate(updateClasses2Create: string[] | null = null, primordial: boolean = false): number | void {
     try {
+      if (values.cssCreateBatchDepth > 0) {
+        values.cssCreatePending = true;
+        if (Array.isArray(updateClasses2Create) && updateClasses2Create.length > 0 && !values.cssCreatePendingFullScan) {
+          updateClasses2Create.forEach(className => values.cssCreatePendingClasses.add(className));
+        } else {
+          values.cssCreatePendingFullScan = true;
+          values.cssCreatePendingClasses.clear();
+        }
+        return values.lastTimeCssCreateEnded;
+      }
+
       if (!values.pseudos[0]) {
         values.pseudos = values.pseudoClasses
           .sort((e1: number | string, e2: number | string) => {

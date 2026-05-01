@@ -1,8 +1,10 @@
 import { TClassCreationDiagnostic, TCssCreateReport } from '../types';
 
 const MAX_DIAGNOSTICS_PER_RUN = 200;
+const MAX_REPORT_HISTORY = 100;
 
-const createEmptyReport = (): TCssCreateReport => ({
+const createEmptyReport = (id: number = 0): TCssCreateReport => ({
+  id,
   startedAt: Date.now(),
   inputClasses: [],
   processedClasses: 0,
@@ -13,6 +15,8 @@ const createEmptyReport = (): TCssCreateReport => ({
 });
 
 let lastReport: TCssCreateReport = createEmptyReport();
+let reportHistory: TCssCreateReport[] = [];
+let nextRunId = 0;
 let runIsActive = false;
 let recordingSuspended = false;
 
@@ -37,7 +41,8 @@ const ensureActiveReport = (): TCssCreateReport => {
 
 export const css_create_diagnostics = {
   startRun(inputClasses: string[] = []): TCssCreateReport {
-    lastReport = createEmptyReport();
+    nextRunId += 1;
+    lastReport = createEmptyReport(nextRunId);
     lastReport.inputClasses = [...inputClasses];
     runIsActive = true;
     return this.getLastReport();
@@ -94,16 +99,37 @@ export const css_create_diagnostics = {
     }
   },
 
-  completeRun(): TCssCreateReport {
+  completeRun(durationMs?: number): TCssCreateReport {
     const report = ensureActiveReport();
     report.completedAt = Date.now();
+    report.durationMs =
+      typeof durationMs === 'number' && Number.isFinite(durationMs)
+        ? Number(Math.max(0, durationMs).toFixed(2))
+        : Math.max(0, report.completedAt - report.startedAt);
     report.currentClassName = undefined;
     runIsActive = false;
+    if (report.id > 0) {
+      reportHistory.push(cloneReport(report));
+      if (reportHistory.length > MAX_REPORT_HISTORY) {
+        reportHistory = reportHistory.slice(-MAX_REPORT_HISTORY);
+      }
+    }
     return this.getLastReport();
   },
 
   getLastReport(): TCssCreateReport {
     return cloneReport(lastReport);
+  },
+
+  getHistory(limit?: number): TCssCreateReport[] {
+    const normalizedLimit = typeof limit === 'number' && Number.isFinite(limit) ? Math.max(0, Math.floor(limit)) : undefined;
+    const history = normalizedLimit === undefined ? reportHistory : reportHistory.slice(-normalizedLimit);
+    return history.map(cloneReport);
+  },
+
+  clearHistory(): TCssCreateReport[] {
+    reportHistory = [];
+    return this.getHistory();
   },
 
   clear(): TCssCreateReport {

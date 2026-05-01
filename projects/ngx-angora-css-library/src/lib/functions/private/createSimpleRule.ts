@@ -12,6 +12,56 @@ const log = (t: any, p?: TLogPartsOptions) => {
 const multiLog = (toLog: [any, TLogPartsOptions?][]) => {
   console_log.multiBetterLogV1('createSimpleRule', toLog);
 };
+
+const normalizeSelector = (selector: string | undefined): string => (selector || '').trim().replace(/\s+/g, ' ');
+
+const getRuleSelector = (rule: string): string => normalizeSelector(rule.split('{')[0]);
+
+const getCssRuleSelector = (rule: CSSRule): string => {
+  const cssStyleRule = rule as CSSStyleRule;
+  if (typeof cssStyleRule.selectorText === 'string') {
+    return normalizeSelector(cssStyleRule.selectorText);
+  }
+
+  return getRuleSelector(rule.cssText);
+};
+
+const isGroupingRule = (rule: CSSRule): boolean =>
+  typeof (rule as CSSStyleRule).selectorText !== 'string' && !!(rule as CSSGroupingRule).cssRules;
+
+const deleteMatchingSelector = (sheet: CSSStyleSheet, selector: string): void => {
+  const normalizedSelector = normalizeSelector(selector);
+  if (!normalizedSelector) return;
+
+  for (let i = sheet.cssRules.length - 1; i >= 0; i--) {
+    const rule = sheet.cssRules[i];
+    if (isGroupingRule(rule)) continue;
+
+    if (getCssRuleSelector(rule) === normalizedSelector) {
+      sheet.deleteRule(i);
+    }
+  }
+};
+
+const deleteDuplicateInsertedSelectors = (sheet: CSSStyleSheet, insertedIndex: number): void => {
+  const insertedRule = sheet.cssRules[insertedIndex];
+  if (!insertedRule || isGroupingRule(insertedRule)) return;
+
+  const insertedSelector = getCssRuleSelector(insertedRule);
+  if (!insertedSelector) return;
+
+  for (let i = sheet.cssRules.length - 1; i >= 0; i--) {
+    if (i === insertedIndex) continue;
+
+    const rule = sheet.cssRules[i];
+    if (isGroupingRule(rule)) continue;
+
+    if (getCssRuleSelector(rule) === insertedSelector) {
+      sheet.deleteRule(i);
+    }
+  }
+};
+
 export const createSimpleRule = (rule: string): void => {
   log(rule, 'rule');
   if (!values.sheet || typeof rule !== 'string' || rule.trim().length === 0) return;
@@ -45,12 +95,13 @@ export const createSimpleRule = (rule: string): void => {
     }
     rulesParsed.shift();
     [...values.sheet.cssRules].forEach((css: CSSRule | CSSGroupingRule) => {
-      if (css.cssText.includes(mediaRule) && css instanceof CSSGroupingRule && css.cssRules) {
+      const groupingRule = css as CSSGroupingRule;
+      if (css.cssText.includes(mediaRule) && isGroupingRule(css)) {
         originalMediaRules = true;
         let i = 0;
         while (i <= rulesParsed.length) {
           let index: number = 0;
-          let posibleRule: any = [...css.cssRules].some((cssRule: any, ix: number) => {
+          let posibleRule: any = [...groupingRule.cssRules].some((cssRule: any, ix: number) => {
             if (cssRule.cssText.includes(rulesParsed[i])) {
               index = ix;
               return true;
@@ -58,7 +109,7 @@ export const createSimpleRule = (rule: string): void => {
               return false;
             }
           })
-            ? [...css.cssRules].find((cs, i) =>
+            ? [...groupingRule.cssRules].find((cs, i) =>
                 cs.cssText.split(' ').find((aC: string) => {
                   return aC.replace('.', '') === rulesParsed[i];
                 })
@@ -71,11 +122,11 @@ export const createSimpleRule = (rule: string): void => {
             */
               undefined;
           if (!!posibleRule) {
-            css.deleteRule(index);
+            groupingRule.deleteRule(index);
           }
           let newRule: string = `${rulesParsed[i]}{${rulesParsed[i + 1]}}`;
           log(newRule, 'newRule');
-          css.insertRule(newRule, css.cssRules.length);
+          groupingRule.insertRule(newRule, groupingRule.cssRules.length);
           i = i + 2;
         }
       }
@@ -83,6 +134,8 @@ export const createSimpleRule = (rule: string): void => {
   }
   if (originalMediaRules === false) {
     log(rule, 'rule');
-    values.sheet.insertRule(rule, values.sheet.cssRules.length);
+    deleteMatchingSelector(values.sheet, getRuleSelector(rule));
+    const insertedIndex = values.sheet.insertRule(rule, values.sheet.cssRules.length);
+    deleteDuplicateInsertedSelectors(values.sheet, insertedIndex);
   }
 };

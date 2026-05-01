@@ -44,6 +44,10 @@ describe('AppComponent', () => {
     ankService.values.combosCreated = {};
     ankService.values.combosCreatedKeys = new Set();
     ankService.values.alreadyCreatedClasses.clear();
+    ankService.values.cssCreateBatchDepth = 0;
+    ankService.values.cssCreatePending = false;
+    ankService.values.cssCreatePendingFullScan = false;
+    ankService.values.cssCreatePendingClasses.clear();
     ankService.clearCssCreateReport();
   });
 
@@ -68,6 +72,7 @@ describe('AppComponent', () => {
     expect(report.diagnostics.filter(diagnostic => diagnostic.severity === 'error').length).toBe(0);
     expect((ankService.values.sheet as unknown as { insertRule: jasmine.Spy }).insertRule).toHaveBeenCalled();
     expect(fixture.nativeElement.textContent).toContain('CSS creation report');
+    expect(fixture.nativeElement.textContent).toContain('CSS creation history');
     expect(fixture.nativeElement.textContent).toContain('Validate a class before creation');
   }));
 
@@ -83,8 +88,14 @@ describe('AppComponent', () => {
     const input = host.querySelector('#validationCandidate');
 
     expect(host.textContent).toContain('Start here');
+    expect(host.textContent).toContain('Tutorial map');
+    expect(host.textContent).toContain('Performance model');
+    expect(host.textContent).toContain('Debugging API');
     expect(host.textContent).toContain('Install the package');
     expect(host.textContent).toContain('Load the managed stylesheets');
+    expect(host.textContent).toContain('Register runtime tokens in one batch');
+    expect(host.textContent).toContain('runInCssCreateBatch');
+    expect(host.textContent).toContain('getCssCreateHistory');
     expect(label?.textContent).toContain('Class to validate');
     expect(input).toBeTruthy();
   }));

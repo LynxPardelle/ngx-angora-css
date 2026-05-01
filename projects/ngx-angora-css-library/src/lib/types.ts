@@ -83,8 +83,10 @@ export type TClassesValidationReport = {
 };
 
 export type TCssCreateReport = {
+  id: number;
   startedAt: number;
   completedAt?: number;
+  durationMs?: number;
   inputClasses: string[];
   processedClasses: number;
   createdClasses: number;
@@ -94,6 +96,57 @@ export type TCssCreateReport = {
   lastSuccessfulClassName?: string;
   lastFailedClassName?: string;
   diagnostics: TClassCreationDiagnostic[];
+};
+
+export type TCssCreateDebugSummary = {
+  totalRuns: number;
+  totalDurationMs: number;
+  averageDurationMs: number;
+  fastestDurationMs: number;
+  slowestDurationMs: number;
+  lastDurationMs: number;
+  lastRunId?: number;
+  lastStartedAt?: number;
+  lastCompletedAt?: number;
+  totalInputClasses: number;
+  totalProcessedClasses: number;
+  totalCreatedClasses: number;
+  totalSkippedClasses: number;
+  totalFailedClasses: number;
+  totalDiagnostics: number;
+  warningDiagnostics: number;
+  errorDiagnostics: number;
+};
+
+export type TCssCreateDebugSnapshot = {
+  lastReport: TCssCreateReport;
+  history: TCssCreateReport[];
+  summary: TCssCreateDebugSummary;
+  stylesheets: {
+    normal: {
+      available: boolean;
+      href?: string;
+      ruleCount: number;
+    };
+    responsive: {
+      available: boolean;
+      href?: string;
+      ruleCount: number;
+    };
+  };
+  runtime: {
+    alreadyCreatedClasses: number;
+    colors: number;
+    breakpoints: number;
+    combos: number;
+    abreviationsClasses: number;
+    abreviationsValues: number;
+    cacheActive: boolean;
+    useTimer: boolean;
+    useRecurrentStrategy: boolean;
+    importantActive: boolean;
+    isDebug: boolean;
+  };
 };
 
 export type TCacheOptions =

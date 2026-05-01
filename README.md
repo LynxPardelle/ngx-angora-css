@@ -62,12 +62,43 @@ The parser supports:
 `NgxAngoraService` exposes registry methods for extending the runtime:
 
 ```typescript
-ank.pushColors({ brandAurora: 'linear-gradient(135deg, #0f766e 0%, #38bdf8 100%)' });
-ank.pushBPS([{ bp: 'stage', value: '1080px', class2Create: '' }]);
-ank.pushAbreviationsValues({ pillRadius: '999px' });
-ank.pushAbreviationsClasses({ clusterGap: 'ank-gap' });
-ank.pushCombos({ Badge: ['ank-bg-brandAurora ank-c-white ank-rounded-pillRadius'] });
+ank.runInCssCreateBatch(() => {
+  ank.pushColors({ brandAurora: 'linear-gradient(135deg, #0f766e 0%, #38bdf8 100%)' });
+  ank.pushBPS([{ bp: 'stage', value: '1080px', class2Create: '' }]);
+  ank.pushAbreviationsValues({ pillRadius: '999px' });
+  ank.pushAbreviationsClasses({ clusterGap: 'ank-gap' });
+  ank.pushCombos({ Badge: ['ank-bg-brandAurora ank-c-white ank-rounded-pillRadius'] });
+});
 ```
+
+Use `runInCssCreateBatch()` when registering several runtime features during app startup. Registry methods that normally trigger CSS creation are deferred until the batch closes, so startup does one creation pass instead of one pass per registry call.
+
+For manual control, the service also exposes `beginCssCreateBatch()` and `endCssCreateBatch()`. Always close a manual batch in `finally` if you use those lower-level methods.
+
+## Performance And Duplicate Rules
+
+`cssCreate()` is intended to run after Angular renders the view, after lazy content appears, or after a user action changes managed class names. Avoid unconditional `ngDoCheck` loops because they repeatedly scan the DOM.
+
+Forced updates are idempotent: recreating an existing selector replaces the matching rule before inserting the new one. This applies to normal selectors and nested responsive selectors inside media rules.
+
+## CSS Creation Debugging
+
+The runtime records timing and run history for every completed `cssCreate()` call. Use these methods to build debug panels without relying on a DOM element such as `cssCreateMessage`:
+
+```typescript
+const lastRun = ank.getLastCssCreateReport();
+const history = ank.getCssCreateHistory(8);
+const summary = ank.getCssCreateDebugSummary();
+const snapshot = ank.getCssCreateDebugSnapshot();
+
+ank.clearCssCreateHistory();
+```
+
+`getCssCreateHistory(limit)` returns completed reports with `id`, `startedAt`, `completedAt`, `durationMs`, processed/created/skipped/failed counters, input classes, and diagnostics.
+
+`getCssCreateDebugSummary()` aggregates total runs, total duration, average duration, fastest and slowest runs, created/skipped/failed totals, and warning/error diagnostic totals.
+
+`getCssCreateDebugSnapshot()` combines the last report, recent history, summary, stylesheet availability/rule counts, and runtime registry counts for colors, breakpoints, combos, aliases, and created classes.
 
 ## Validation And Diagnostics
 

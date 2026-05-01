@@ -23,7 +23,7 @@ import { managePartsSections } from './functions/managePartsNSectionsToSeeOnLog'
 import { utility_configurations } from './functions/utility_configurations';
 import { validate_class } from './functions/validate_class';
 /* Types */
-import { TLogPartsOptions, TLogSectionOptions } from './types';
+import { TCssCreateDebugSnapshot, TCssCreateDebugSummary, TLogPartsOptions, TLogSectionOptions } from './types';
 @Injectable({
   providedIn: 'root',
 })
@@ -94,6 +94,58 @@ export class NgxAngoraService {
   public getSheet = () => manage_sheet.getSheet();
   public getLastCssCreateReport = () => css_create_diagnostics.getLastReport();
   public clearCssCreateReport = () => css_create_diagnostics.clear();
+  public getCssCreateHistory = (limit?: number) => css_create_diagnostics.getHistory(limit);
+  public clearCssCreateHistory = () => css_create_diagnostics.clearHistory();
+  public getCssCreateDebugSummary = (): TCssCreateDebugSummary => {
+    const history = css_create_diagnostics.getHistory();
+    const totalRuns = history.length;
+    const durations = history.map(report => report.durationMs ?? 0);
+    const totalDurationMs = Number(durations.reduce((total, duration) => total + duration, 0).toFixed(2));
+    const lastReport = history[history.length - 1];
+    const diagnostics = history.flatMap(report => report.diagnostics);
+
+    return {
+      totalRuns,
+      totalDurationMs,
+      averageDurationMs: totalRuns > 0 ? Number((totalDurationMs / totalRuns).toFixed(2)) : 0,
+      fastestDurationMs: totalRuns > 0 ? Math.min(...durations) : 0,
+      slowestDurationMs: totalRuns > 0 ? Math.max(...durations) : 0,
+      lastDurationMs: lastReport?.durationMs ?? 0,
+      lastRunId: lastReport?.id,
+      lastStartedAt: lastReport?.startedAt,
+      lastCompletedAt: lastReport?.completedAt,
+      totalInputClasses: history.reduce((total, report) => total + report.inputClasses.length, 0),
+      totalProcessedClasses: history.reduce((total, report) => total + report.processedClasses, 0),
+      totalCreatedClasses: history.reduce((total, report) => total + report.createdClasses, 0),
+      totalSkippedClasses: history.reduce((total, report) => total + report.skippedClasses, 0),
+      totalFailedClasses: history.reduce((total, report) => total + report.failedClasses, 0),
+      totalDiagnostics: diagnostics.length,
+      warningDiagnostics: diagnostics.filter(diagnostic => diagnostic.severity === 'warning').length,
+      errorDiagnostics: diagnostics.filter(diagnostic => diagnostic.severity === 'error').length,
+    };
+  };
+  public getCssCreateDebugSnapshot = (historyLimit: number = 10): TCssCreateDebugSnapshot => ({
+    lastReport: css_create_diagnostics.getLastReport(),
+    history: css_create_diagnostics.getHistory(historyLimit),
+    summary: this.getCssCreateDebugSummary(),
+    stylesheets: {
+      normal: this.getStylesheetDebugInfo(this.values.sheet),
+      responsive: this.getStylesheetDebugInfo(this.values.responsiveSheet),
+    },
+    runtime: {
+      alreadyCreatedClasses: this.values.alreadyCreatedClasses.size,
+      colors: Object.keys(this.values.colors).length,
+      breakpoints: this.values.bps.length,
+      combos: Object.keys(this.values.combos).length,
+      abreviationsClasses: Object.keys(this.values.abreviationsClasses).length,
+      abreviationsValues: Object.keys(this.values.abreviationsValues).length,
+      cacheActive: this.values.cacheActive,
+      useTimer: this.values.useTimer,
+      useRecurrentStrategy: this.values.useRecurrentStrategy,
+      importantActive: this.values.importantActive,
+      isDebug: this.values.isDebug,
+    },
+  });
   public validateClass = (className: string, options?: IClassValidationOptions) =>
     validate_class.validateClass(className, options);
   public validateClasses = (classNames: string[], options?: IClassValidationOptions) =>
@@ -113,10 +165,55 @@ export class NgxAngoraService {
   public deleteColor = (color: string) => manage_colors.deleteColor(color);
   public clearAllColors = () => manage_colors.clearAllColors();
   /* Utility */
+  private getStylesheetDebugInfo = (sheet?: CSSStyleSheet) => {
+    let ruleCount = 0;
+    try {
+      ruleCount = sheet?.cssRules?.length ?? 0;
+    } catch {
+      ruleCount = -1;
+    }
+
+    return {
+      available: !!sheet,
+      href: sheet?.href || undefined,
+      ruleCount,
+    };
+  };
   public changeImportantActive = (active?: boolean) => utility_configurations.changeImportantActive(active);
   public changeDebugOption = (active?: boolean) => debugg_options.changeDebugOption(active);
   public changeUseTimerOption = (active?: boolean) => debugg_options.changeUseTimerOption(active);
   public setTimeBetweenReCreate = (time: number) => debugg_options.setTimeBetweenReCreate(time);
+  public beginCssCreateBatch = () => {
+    this.values.cssCreateBatchDepth++;
+  };
+  public endCssCreateBatch = (): number | void => {
+    if (this.values.cssCreateBatchDepth > 0) {
+      this.values.cssCreateBatchDepth--;
+    }
+
+    if (this.values.cssCreateBatchDepth > 0 || !this.values.cssCreatePending) {
+      return;
+    }
+
+    const runFullScan = this.values.cssCreatePendingFullScan;
+    const pendingClasses = Array.from(this.values.cssCreatePendingClasses);
+    this.values.cssCreatePending = false;
+    this.values.cssCreatePendingFullScan = false;
+    this.values.cssCreatePendingClasses.clear();
+
+    return cssCreate.cssCreate(runFullScan || pendingClasses.length === 0 ? null : pendingClasses, true);
+  };
+  public runInCssCreateBatch = (callback: () => void): number | void => {
+    this.beginCssCreateBatch();
+    let result: number | void;
+    try {
+      callback();
+    } finally {
+      result = this.endCssCreateBatch();
+    }
+
+    return result;
+  };
   public unbefysize = (value: string) => abreviation_traductors.unbefysize(value);
   public befysize = (value: string) => abreviation_traductors.befysize(value);
   public consoleLog = (

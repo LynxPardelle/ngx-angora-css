@@ -33,12 +33,37 @@ export class AppComponent {
 ## Runtime Extension API
 
 ```typescript
-ank.pushColors({ brandAurora: 'linear-gradient(135deg, #0f766e 0%, #38bdf8 100%)' });
-ank.pushBPS([{ bp: 'stage', value: '1080px', class2Create: '' }]);
-ank.pushAbreviationsValues({ pillRadius: '999px' });
-ank.pushAbreviationsClasses({ clusterGap: 'ank-gap' });
-ank.pushCombos({ Badge: ['ank-bg-brandAurora ank-c-white ank-rounded-pillRadius'] });
+ank.runInCssCreateBatch(() => {
+  ank.pushColors({ brandAurora: 'linear-gradient(135deg, #0f766e 0%, #38bdf8 100%)' });
+  ank.pushBPS([{ bp: 'stage', value: '1080px', class2Create: '' }]);
+  ank.pushAbreviationsValues({ pillRadius: '999px' });
+  ank.pushAbreviationsClasses({ clusterGap: 'ank-gap' });
+  ank.pushCombos({ Badge: ['ank-bg-brandAurora ank-c-white ank-rounded-pillRadius'] });
+});
 ```
+
+Batch runtime registration when several registries are updated together. Calls to `cssCreate()` requested by registry helpers are deferred until the batch closes, which keeps startup to one creation pass.
+
+The lower-level `beginCssCreateBatch()` and `endCssCreateBatch()` methods are available for advanced flows. If you use them directly, close the batch from a `finally` block.
+
+## Performance And Duplicate Rules
+
+Run `cssCreate()` after render, after lazy content appears, or after a user action changes managed class names. Avoid unconditional `ngDoCheck` loops.
+
+Forced recreation is idempotent: existing matching selectors are replaced before new rules are inserted, including nested rules in the responsive stylesheet.
+
+## CSS Creation Debugging
+
+```typescript
+const lastRun = ank.getLastCssCreateReport();
+const history = ank.getCssCreateHistory(8);
+const summary = ank.getCssCreateDebugSummary();
+const snapshot = ank.getCssCreateDebugSnapshot();
+
+ank.clearCssCreateHistory();
+```
+
+Every completed `cssCreate()` report includes `id`, `startedAt`, `completedAt`, `durationMs`, counters, input classes, and diagnostics. The summary method aggregates timing and class counters across the stored history. The snapshot method adds stylesheet availability/rule counts and runtime registry sizes.
 
 ## Validation And Diagnostics
 

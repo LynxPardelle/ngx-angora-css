@@ -44,6 +44,11 @@ describe('NgxAngoraService', () => {
     service.values.combosCreated = {};
     service.values.combosCreatedKeys = new Set();
     service.values.alreadyCreatedClasses.clear();
+    service.values.cssCreateBatchDepth = 0;
+    service.values.cssCreatePending = false;
+    service.values.cssCreatePendingFullScan = false;
+    service.values.cssCreatePendingClasses.clear();
+    service.clearCssCreateHistory();
     hostElement = document.createElement('div');
     document.body.appendChild(hostElement);
     css_create_diagnostics.clear();
@@ -145,5 +150,67 @@ describe('NgxAngoraService', () => {
 
     service.changeUseTimerOption();
     expect(service.values.useTimer).toBeFalse();
+  });
+
+  it('defers automatic cssCreate calls while runtime configuration changes are batched', () => {
+    hostElement.innerHTML = '<div class="ank-color-red"></div>';
+    const insertRuleSpy = service.values.sheet as unknown as { insertRule: jasmine.Spy };
+
+    service.beginCssCreateBatch();
+    service.pushBPS([{ bp: 'wide', value: '1200px' }]);
+    service.pushAbreviationsValues({ demoSpace: '1rem' });
+    service.pushCombos({ DemoBox: ['ank-color-red'] });
+
+    expect(insertRuleSpy.insertRule).not.toHaveBeenCalled();
+
+    service.endCssCreateBatch();
+
+    expect(insertRuleSpy.insertRule).toHaveBeenCalledTimes(1);
+    expect(service.values.cssCreateBatchDepth).toBe(0);
+    expect(service.values.cssCreatePending).toBeFalse();
+  });
+
+  it('closes a cssCreate batch without swallowing callback errors', () => {
+    expect(() => {
+      service.runInCssCreateBatch(() => {
+        throw new Error('registration failed');
+      });
+    }).toThrowError('registration failed');
+
+    expect(service.values.cssCreateBatchDepth).toBe(0);
+  });
+
+  it('keeps a cssCreate history with timing details for debugging', () => {
+    service.cssCreate(['ank-color-red']);
+    service.cssCreate(['ank-bg-blue']);
+
+    const history = service.getCssCreateHistory();
+    const summary = service.getCssCreateDebugSummary();
+
+    expect(history.length).toBe(2);
+    expect(history[0].id).toBeGreaterThan(0);
+    expect(history[0].durationMs).toBeGreaterThanOrEqual(0);
+    expect(history[0].completedAt).toBeGreaterThanOrEqual(history[0].startedAt);
+    expect(summary.totalRuns).toBe(2);
+    expect(summary.totalCreatedClasses).toBe(2);
+    expect(summary.averageDurationMs).toBeGreaterThanOrEqual(0);
+    expect(summary.slowestDurationMs).toBeGreaterThanOrEqual(summary.fastestDurationMs);
+  });
+
+  it('exposes a cssCreate debug snapshot and can clear the run history', () => {
+    service.cssCreate(['ank-color-red']);
+
+    const snapshot = service.getCssCreateDebugSnapshot();
+
+    expect(snapshot.history.length).toBe(1);
+    expect(snapshot.summary.totalRuns).toBe(1);
+    expect(snapshot.stylesheets.normal.available).toBeTrue();
+    expect(snapshot.stylesheets.normal.ruleCount).toBeGreaterThan(0);
+    expect(snapshot.runtime.alreadyCreatedClasses).toBeGreaterThan(0);
+
+    service.clearCssCreateHistory();
+
+    expect(service.getCssCreateHistory().length).toBe(0);
+    expect(service.getCssCreateDebugSummary().totalRuns).toBe(0);
   });
 });

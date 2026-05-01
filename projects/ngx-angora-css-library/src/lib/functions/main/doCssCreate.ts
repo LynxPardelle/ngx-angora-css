@@ -72,8 +72,8 @@ export const doCssCreate = (id: number, updateClasses2Create?: string[]): number
     ]);
     send2CreateRules(classes2CreateStringed.join(''), bpsStringed);
     const endTimeCSSCreate = performance.now();
-    let timeToCreate: string | number = endTimeCSSCreate - startTimeCSSCreate;
-    timeToCreate = timeToCreate.toFixed(2) + 'ms';
+    const durationMs = endTimeCSSCreate - startTimeCSSCreate;
+    const timeToCreate = durationMs.toFixed(2) + 'ms';
     console_log.consoleLog('info', `Call to cssCreate() took ${timeToCreate}.`);
     let class2CreateTimer = document.getElementById(values.indicatorClass + 'Timer');
     if (class2CreateTimer) {
@@ -95,7 +95,7 @@ export const doCssCreate = (id: number, updateClasses2Create?: string[]): number
         cssCreateMessage.innerHTML = message;
       }
     }
-    css_create_diagnostics.completeRun();
+    css_create_diagnostics.completeRun(durationMs);
     return Date.now();
   } catch (err) {
     css_create_diagnostics.addDiagnostic({

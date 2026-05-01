@@ -6,6 +6,8 @@ import {
 	TClassValidationOptions,
 	TClassValidationResult,
 	TConsoleParser,
+	TCssCreateDebugSnapshot,
+	TCssCreateDebugSummary,
 	TCssCreateReport,
 	TPseudo,
 } from './types';
@@ -27,3 +29,7 @@ export interface IClassValidationResult extends TClassValidationResult {}
 export interface IClassesValidationReport extends TClassesValidationReport {}
 
 export interface ICssCreateReport extends TCssCreateReport {}
+
+export interface ICssCreateDebugSummary extends TCssCreateDebugSummary {}
+
+export interface ICssCreateDebugSnapshot extends TCssCreateDebugSnapshot {}

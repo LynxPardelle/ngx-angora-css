@@ -1,5 +1,6 @@
 import { Component, NgZone, afterNextRender } from '@angular/core';
 import {
+  ICssCreateDebugSummary,
   IClassesValidationReport,
   IClassValidationResult,
   ICssCreateReport,
@@ -41,6 +42,19 @@ type RuntimeBreakpoint = {
 
 type TutorialStep = {
   label: string;
+  title: string;
+  description: string;
+  code: string;
+};
+
+type LearningPathItem = {
+  label: string;
+  title: string;
+  description: string;
+  tokens: string[];
+};
+
+type PerformanceNote = {
   title: string;
   description: string;
   code: string;
@@ -108,15 +122,54 @@ export class AppComponent {
     },
     {
       label: '03',
-      title: 'Register runtime tokens',
-      description: 'Push colors, breakpoints, aliases, and combos before the first creation pass.',
-      code: 'ank.pushColors({ brandAurora: "linear-gradient(135deg, #0f766e 0%, #38bdf8 100%)" });\nank.pushCombos({ Badge: ["ank-bg-brandAurora ank-c-white"] });',
+      title: 'Register runtime tokens in one batch',
+      description: 'Group colors, breakpoints, aliases, and combos so setup produces one creation pass.',
+      code: 'ank.runInCssCreateBatch(() => {\n  ank.pushColors({ brandAurora: "linear-gradient(135deg, #0f766e 0%, #38bdf8 100%)" });\n  ank.pushBPS([{ bp: "stage", value: "1080px" }]);\n  ank.pushCombos({ Badge: ["ank-bg-brandAurora ank-c-white"] });\n});',
     },
     {
       label: '04',
       title: 'Create CSS from classes',
-      description: 'Use ank-prefixed classes in templates, then call cssCreate after Angular renders the view.',
+      description: 'Use ank-prefixed classes in templates, then call cssCreate after render or after a DOM-changing action.',
       code: '<button class="ank-bg-brandAurora ank-c-fieldMist ank-p-0_75rem__1rem">Save</button>\nank.cssCreate();',
+    },
+  ];
+
+  public readonly learningPath: LearningPathItem[] = [
+    {
+      label: 'Basics',
+      title: 'Class grammar',
+      description: 'Start with property-value utilities, value encoding, aliases, and readable class names.',
+      tokens: ['ank-property-value', 'ank-c-red', 'ank-p-0_75rem__1rem'],
+    },
+    {
+      label: 'Tokens',
+      title: 'Runtime registries',
+      description: 'Register palettes, breakpoints, value aliases, property aliases, and reusable combos together.',
+      tokens: ['pushColors', 'pushBPS', 'pushAbreviationsValues', 'pushCombos'],
+    },
+    {
+      label: 'States',
+      title: 'Pseudos and selectors',
+      description: 'Compose hover, focus, active, and descendant selector utilities without writing a custom CSS file.',
+      tokens: ['ank-bgHover-brandAurora', 'ank-boxShadowFocus-*', 'SEL__button'],
+    },
+    {
+      label: 'Responsive',
+      title: 'Breakpoint output',
+      description: 'Create responsive variants in the dedicated responsive stylesheet using custom breakpoint names.',
+      tokens: ['ank-gridTemplateColumns-stage-*', 'angora-styles-responsive.css'],
+    },
+    {
+      label: 'Quality',
+      title: 'Validation and diagnostics',
+      description: 'Preview generated rules, detect malformed classes, and inspect the last CSS creation report.',
+      tokens: ['validateClass', 'validateClasses', 'getLastCssCreateReport'],
+    },
+    {
+      label: 'Debug',
+      title: 'Debugging API',
+      description: 'Read timing history, aggregate performance, and stylesheet/runtime state without DOM timer hooks.',
+      tokens: ['getCssCreateHistory', 'getCssCreateDebugSummary', 'getCssCreateDebugSnapshot'],
     },
   ];
 
@@ -139,6 +192,8 @@ export class AppComponent {
     AStepHead: ['ank-wmn-0 ank-d-flex ank-gap-0_75rem ank-alignItems-center'],
     AStepNumber: ['ank-d-inlineMINflex ank-alignItems-center ank-justifyContent-center ank-w-2_35rem ank-h-2_35rem ank-rounded-pillRadius ank-bg-inkpulse ank-c-fieldMist ank-fontWeight-800'],
     ACodeBlock: ['ank-wmn-0 ank-maxWidth-100per ank-bxs-borderMINbox ank-m-0 ank-p-1rem ank-rounded-0_85rem ank-bg-inkpulse ank-c-fieldMist ank-whiteSpace-preMINwrap ank-overflow-auto ank-fontSize-0_84rem ank-lineHeight-1_45'],
+    APathCard: ['ank-wmn-0 ank-bxs-borderMINbox ank-bg-fieldMist ank-rounded-1rem ank-p-1rem ank-d-grid ank-gap-0_75rem ank-borderWidth-1px ank-borderStyle-solid ank-borderColor-cloudLine'],
+    APathLabel: ['ank-d-inlineMINblock ank-w-fitMINcontent ank-rounded-pillRadius ank-px-0_65rem ank-py-0_25rem ank-bg-inkpulse ank-c-fieldMist ank-fontSize-0_72rem ank-fontWeight-800 ank-textTransform-uppercase'],
     AButtonGallery: ['ank-wmn-0 ank-display-grid ank-gridTemplateColumns-1fr ank-gap-1rem ank-gridTemplateColumns-stage-repeatSD2COM__1frED ank-gridTemplateColumns-billboard-repeatSD3COM__1frED'],
     AShowcaseCard: ['ank-wmn-0 ank-bxs-borderMINbox ank-bg-fieldMist ank-rounded-1rem ank-p-1rem ank-d-grid ank-gap-0_75rem ank-borderWidth-1px ank-borderStyle-solid ank-borderColor-cloudLine'],
     AShowcaseLabel: ['ank-m-0 ank-c-inkpulse ank-fontSize-0_72rem ank-letterSpacing-0_14em ank-textTransform-uppercase ank-fontWeight-700 ank-opacity-0_75'],
@@ -250,6 +305,29 @@ export class AppComponent {
     },
   ];
 
+  public readonly performanceNotes: PerformanceNote[] = [
+    {
+      title: 'Batch runtime registration',
+      description: 'Use one setup transaction so registry methods do not each trigger their own scan and rule creation pass.',
+      code: 'ank.runInCssCreateBatch(() => {\n  ank.pushColors(colors);\n  ank.pushBPS(breakpoints);\n  ank.pushCombos(combos);\n});',
+    },
+    {
+      title: 'Idempotent rule creation',
+      description: 'Forced updates now replace the matching selector before inserting the new rule, including nested responsive rules.',
+      code: 'ank.cssCreate(["ank-color-red"], true);\nank.cssCreate(["ank-color-red"], true);\n// one .ank-color-red rule remains',
+    },
+    {
+      title: 'Use cssCreate intentionally',
+      description: 'Run it after the view renders, after lazy content appears, or after user-generated classes change. Avoid unconditional DoCheck loops.',
+      code: 'afterNextRender(() => ank.cssCreate());\n// later, after a class-changing action:\nank.cssCreate();',
+    },
+    {
+      title: 'Debug from the service',
+      description: 'Read timings and run history directly from the library instead of creating a cssCreateMessage element.',
+      code: 'const history = ank.getCssCreateHistory(8);\nconst summary = ank.getCssCreateDebugSummary();\nconst snapshot = ank.getCssCreateDebugSnapshot();',
+    },
+  ];
+
   public readonly responsiveItems: ResponsiveItem[] = [
     {
       title: 'Single-column baseline',
@@ -294,6 +372,8 @@ export class AppComponent {
   public validationCandidate = 'ank-color-signalMint';
   public sampleClasses = ['ank-color-signalMint', 'disp-flex', 'ank-'];
   public cssCreateReport: ICssCreateReport;
+  public cssCreateDebugSummary: ICssCreateDebugSummary;
+  public cssCreateHistory: ICssCreateReport[] = [];
   public latestValidation: IClassValidationResult;
   public sampleValidationReport: IClassesValidationReport;
   public apiStats: ApiStat[] = [];
@@ -308,6 +388,8 @@ export class AppComponent {
     this._ank.values.useRecurrentStrategy = false;
     this._ank.values.encryptCombo = false;
     this.cssCreateReport = this._ank.getLastCssCreateReport();
+    this.cssCreateDebugSummary = this._ank.getCssCreateDebugSummary();
+    this.cssCreateHistory = this.getDisplayHistory();
     this.latestValidation = this._ank.validateClass(this.validationCandidate, this.validationOptions);
     this.sampleValidationReport = this._ank.validateClasses(this.sampleClasses, this.validationOptions);
     this.refreshApiStats();
@@ -343,18 +425,47 @@ export class AppComponent {
     this.directiveEvents += 1;
   }
 
+  clearCssCreateHistory(): void {
+    this._ank.clearCssCreateHistory();
+    this.refreshInspector();
+  }
+
+  formatDuration(durationMs?: number): string {
+    if (typeof durationMs !== 'number') {
+      return 'pending';
+    }
+
+    return `${durationMs.toFixed(2)}ms`;
+  }
+
+  formatCentralTime(timestamp?: number): string {
+    if (!timestamp) {
+      return 'pending';
+    }
+
+    return new Intl.DateTimeFormat('en-US', {
+      hour: '2-digit',
+      minute: '2-digit',
+      second: '2-digit',
+      hour12: false,
+      timeZone: 'America/Mexico_City',
+    }).format(timestamp);
+  }
+
   private registerRuntimeFeatures(): void {
     if (this.runtimeFeaturesRegistered) {
       return;
     }
 
     this.runtimeFeaturesRegistered = true;
-    this._ank.pushColors(this.runtimeColors);
-    this._ank.pushBPS(this.runtimeBreakpoints);
-    this._ank.pushAbreviationsValues(this.runtimeAbreviationsValues);
-    this._ank.pushAbreviationsClasses(this.runtimeAbreviationsClasses);
-    this._ank.pushCombos(this.combos);
-    this._ank.pushCombos(this.runtimeCombos);
+    this._ank.runInCssCreateBatch(() => {
+      this._ank.pushColors(this.runtimeColors);
+      this._ank.pushBPS(this.runtimeBreakpoints);
+      this._ank.pushAbreviationsValues(this.runtimeAbreviationsValues);
+      this._ank.pushAbreviationsClasses(this.runtimeAbreviationsClasses);
+      this._ank.pushCombos(this.combos);
+      this._ank.pushCombos(this.runtimeCombos);
+    });
   }
 
   private refreshApiStats(): void {
@@ -416,9 +527,15 @@ export class AppComponent {
 
   private refreshInspector(): void {
     this.cssCreateReport = this._ank.getLastCssCreateReport();
+    this.cssCreateDebugSummary = this._ank.getCssCreateDebugSummary();
+    this.cssCreateHistory = this.getDisplayHistory();
     this.latestValidation = this._ank.validateClass(this.validationCandidate, this.validationOptions);
     this.sampleValidationReport = this._ank.validateClasses(this.sampleClasses, this.validationOptions);
     this.refreshApiStats();
+  }
+
+  private getDisplayHistory(): ICssCreateReport[] {
+    return this._ank.getCssCreateHistory(8).slice().reverse();
   }
 
   private runCssCreate(allowDiagnosticFollowUp = true): void {
