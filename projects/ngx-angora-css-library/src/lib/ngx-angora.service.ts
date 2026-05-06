@@ -23,7 +23,15 @@ import { managePartsSections } from './functions/managePartsNSectionsToSeeOnLog'
 import { utility_configurations } from './functions/utility_configurations';
 import { validate_class } from './functions/validate_class';
 /* Types */
-import { TCssCreateDebugSnapshot, TCssCreateDebugSummary, TLogPartsOptions, TLogSectionOptions } from './types';
+import {
+  TAngoraClassClassification,
+  TCssCreateDebugSnapshot,
+  TCssCreateDebugSummary,
+  TLogPartsOptions,
+  TLogSectionOptions,
+  TManagedStylesheetAudit,
+  TManagedStylesheetAuditEntry,
+} from './types';
 @Injectable({
   providedIn: 'root',
 })
@@ -92,6 +100,119 @@ export class NgxAngoraService {
   public getColorValue = (color: string) => manage_colors.getColorValue(color);
   public getAlreadyCreatedClasses = () => manage_classes.getAlreadyCreatedClasses();
   public getSheet = () => manage_sheet.getSheet();
+  public isComboClass = (className: string): boolean => !!this.findComboKeyForClass(className);
+  public classifyClass = (className: string): TAngoraClassClassification => {
+    const normalizedClassName = String(className ?? '').trim();
+    const emptyClassification: TAngoraClassClassification = {
+      className: String(className ?? ''),
+      normalizedClassName,
+      kind: 'unknown',
+      managed: false,
+    };
+
+    if (!normalizedClassName) {
+      return emptyClassification;
+    }
+
+    const comboKey = this.findComboKeyForClass(normalizedClassName);
+    if (comboKey) {
+      return {
+        ...emptyClassification,
+        kind: 'combo',
+        managed: true,
+        comboKey,
+      };
+    }
+
+    const prefix = normalizedClassName.split('-')[0] ?? '';
+    if (!normalizedClassName.includes('-')) {
+      return emptyClassification;
+    }
+
+    const indicatorClass = String(this.values.indicatorClass ?? '').trim();
+    if (indicatorClass && normalizedClassName.startsWith(`${indicatorClass}-`)) {
+      return {
+        ...emptyClassification,
+        kind: 'utility',
+        managed: true,
+        prefix: indicatorClass,
+      };
+    }
+
+    if (Object.keys(this.values.abreviationsClasses ?? {}).includes(prefix)) {
+      return {
+        ...emptyClassification,
+        kind: 'abbreviation',
+        managed: true,
+        prefix,
+      };
+    }
+
+    return emptyClassification;
+  };
+  public auditManagedStylesheets = (sampleLimit: number = 10): TManagedStylesheetAudit => {
+    const normal = this.auditStylesheet(this.values.sheet, sampleLimit);
+    const responsive = this.auditStylesheet(this.values.responsiveSheet, sampleLimit);
+
+    return {
+      normal,
+      responsive,
+      totalRules: normal.ruleCount + responsive.ruleCount,
+      totalDuplicateExactGroups: normal.duplicateExactGroups + responsive.duplicateExactGroups,
+    };
+  };
+  public collectRenderedDomClasses = (root?: ParentNode): string[] => {
+    const scope = root ?? (typeof document !== 'undefined' ? document : null);
+    if (!scope) {
+      return [];
+    }
+
+    const classes = new Set<string>();
+    if (scope instanceof Element) {
+      scope.classList.forEach(className => classes.add(className));
+    }
+
+    scope.querySelectorAll?.('[class]').forEach(element => {
+      element.classList.forEach(className => classes.add(className));
+    });
+
+    return Array.from(classes);
+  };
+  public hasGeneratedCssRules = (): boolean => {
+    const audit = this.auditManagedStylesheets(0);
+    if (audit.totalRules > 0) {
+      return true;
+    }
+
+    return this.getCssCreateDebugSummary().totalCreatedClasses > 0;
+  };
+  public waitForCssReady = (timeoutMs: number = 1500): Promise<boolean> => {
+    if (this.hasGeneratedCssRules()) {
+      return this.waitForNextPaint(true);
+    }
+
+    const startedAt = typeof performance !== 'undefined' ? performance.now() : Date.now();
+    const timeoutAt = startedAt + Math.max(0, timeoutMs);
+
+    return new Promise<boolean>(resolve => {
+      const check = () => {
+        if (this.hasGeneratedCssRules()) {
+          void this.waitForNextPaint(true).then(resolve);
+          return;
+        }
+
+        const now = typeof performance !== 'undefined' ? performance.now() : Date.now();
+        if (now >= timeoutAt) {
+          void this.waitForNextPaint(false).then(resolve);
+          return;
+        }
+
+        this.requestNextFrame(check);
+      };
+
+      this.requestNextFrame(check);
+    });
+  };
   public getLastCssCreateReport = () => css_create_diagnostics.getLastReport();
   public clearCssCreateReport = () => css_create_diagnostics.clear();
   public getCssCreateHistory = (limit?: number) => css_create_diagnostics.getHistory(limit);
@@ -165,6 +286,84 @@ export class NgxAngoraService {
   public deleteColor = (color: string) => manage_colors.deleteColor(color);
   public clearAllColors = () => manage_colors.clearAllColors();
   /* Utility */
+  private findComboKeyForClass = (className: string): string | undefined => {
+    const normalizedClassName = String(className ?? '').trim();
+    let matchedKey: string | undefined;
+
+    Object.keys(this.values.combos ?? {}).forEach(key => {
+      if (normalizedClassName !== key && !normalizedClassName.startsWith(`${key}VAL`)) {
+        return;
+      }
+
+      if (!matchedKey || key.length > matchedKey.length) {
+        matchedKey = key;
+      }
+    });
+
+    return matchedKey;
+  };
+  private auditStylesheet = (sheet?: CSSStyleSheet, sampleLimit: number = 10): TManagedStylesheetAuditEntry => {
+    const normalizedSampleLimit = Math.max(0, Math.floor(Number(sampleLimit) || 0));
+    const base: TManagedStylesheetAuditEntry = {
+      available: !!sheet,
+      href: sheet?.href || undefined,
+      ruleCount: 0,
+      duplicateExactGroups: 0,
+      duplicateExactRules: [],
+    };
+
+    if (!sheet) {
+      return base;
+    }
+
+    try {
+      const rules = Array.from(sheet.cssRules ?? []);
+      const counts = new Map<string, number>();
+      rules.forEach(rule => {
+        const cssText = String(rule.cssText ?? '').trim();
+        if (!cssText) {
+          return;
+        }
+
+        counts.set(cssText, (counts.get(cssText) ?? 0) + 1);
+      });
+
+      const duplicateExactRules = Array.from(counts.entries())
+        .filter(([, count]) => count > 1)
+        .map(([rule, count]) => ({ rule, count }))
+        .slice(0, normalizedSampleLimit);
+
+      return {
+        ...base,
+        ruleCount: rules.length,
+        duplicateExactGroups: Array.from(counts.values()).filter(count => count > 1).length,
+        duplicateExactRules,
+      };
+    } catch (error) {
+      return {
+        ...base,
+        ruleCount: -1,
+        error: error instanceof Error ? error.message : String(error),
+      };
+    }
+  };
+  private waitForNextPaint = (value: boolean): Promise<boolean> =>
+    new Promise<boolean>(resolve => {
+      this.requestNextFrame(() => this.requestNextFrame(() => resolve(value)));
+    });
+  private requestNextFrame = (callback: () => void): void => {
+    if (typeof window !== 'undefined' && typeof window.requestAnimationFrame === 'function') {
+      window.requestAnimationFrame(() => callback());
+      return;
+    }
+
+    if (typeof window !== 'undefined' && typeof window.setTimeout === 'function') {
+      window.setTimeout(callback, 16);
+      return;
+    }
+
+    setTimeout(callback, 16);
+  };
   private getStylesheetDebugInfo = (sheet?: CSSStyleSheet) => {
     let ruleCount = 0;
     try {

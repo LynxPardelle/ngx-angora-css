@@ -82,6 +82,38 @@ export type TClassesValidationReport = {
   duplicateClasses: number;
 };
 
+export type TAngoraClassKind = 'combo' | 'utility' | 'abbreviation' | 'unknown';
+
+export type TAngoraClassClassification = {
+  className: string;
+  normalizedClassName: string;
+  kind: TAngoraClassKind;
+  managed: boolean;
+  comboKey?: string;
+  prefix?: string;
+};
+
+export type TStylesheetDuplicateRule = {
+  rule: string;
+  count: number;
+};
+
+export type TManagedStylesheetAuditEntry = {
+  available: boolean;
+  href?: string;
+  ruleCount: number;
+  duplicateExactGroups: number;
+  duplicateExactRules: TStylesheetDuplicateRule[];
+  error?: string;
+};
+
+export type TManagedStylesheetAudit = {
+  normal: TManagedStylesheetAuditEntry;
+  responsive: TManagedStylesheetAuditEntry;
+  totalRules: number;
+  totalDuplicateExactGroups: number;
+};
+
 export type TCssCreateReport = {
   id: number;
   startedAt: number;

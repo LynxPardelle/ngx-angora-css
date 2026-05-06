@@ -9,6 +9,7 @@ import { console_log } from '../console_log';
 import { getNewClasses2Create } from './private_utilities/getNewClasses2Create';
 import { parseClass } from './private_utilities/parseClass';
 import { send2CreateRules } from './private_utilities/send2CreateRules';
+import { comboParser } from './private_utilities/comboParser';
 /* Types */
 import { TLogPartsOptions } from '../../types';
 const values: ValuesSingleton = ValuesSingleton.getInstance();
@@ -18,12 +19,54 @@ const log = (t: any, p?: TLogPartsOptions) => {
 const multiLog = (toLog: [any, TLogPartsOptions?][]) => {
   console_log.multiBetterLogV1('doCssCreate', toLog);
 };
+
+const findMatchingCombo = (className: string): string | undefined => {
+  let matchedCombo: string | undefined;
+
+  for (const comboName of values.combosKeys) {
+    if (className !== comboName && !className.startsWith(`${comboName}VAL`)) {
+      continue;
+    }
+
+    if (!matchedCombo || comboName.length > matchedCombo.length) {
+      matchedCombo = comboName;
+    }
+  }
+
+  return matchedCombo;
+};
+
+const expandExplicitClasses = (classes: string[]): string[] => {
+  if (typeof document === 'undefined') {
+    return classes;
+  }
+
+  const expandedClasses = new Set<string>();
+
+  classes.forEach(className => {
+    const comboName = findMatchingCombo(className);
+
+    if (!comboName || !values.combos[comboName]) {
+      expandedClasses.add(className);
+      return;
+    }
+
+    const hostElement = document.createElement('div');
+    hostElement.className = className;
+    comboParser(className, comboName, hostElement).forEach(comboClass => expandedClasses.add(comboClass));
+  });
+
+  return Array.from(expandedClasses);
+};
+
 export const doCssCreate = (id: number, updateClasses2Create?: string[]): number => {
   css_create_diagnostics.startRun(updateClasses2Create || []);
   try {
     log(updateClasses2Create, `updateClasses2Create [id:${id}]`);
     const startTimeCSSCreate = performance.now();
-    const classes2Create: string[] = updateClasses2Create || getNewClasses2Create();
+    const classes2Create: string[] = updateClasses2Create
+      ? expandExplicitClasses(updateClasses2Create)
+      : getNewClasses2Create();
     css_create_diagnostics.setInputClasses(classes2Create);
     log(classes2Create, `classes2Create [id:${id}]`);
     const classes2CreateStringed: string[] = [];

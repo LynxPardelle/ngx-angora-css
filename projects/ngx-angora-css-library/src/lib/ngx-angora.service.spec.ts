@@ -213,4 +213,106 @@ describe('NgxAngoraService', () => {
     expect(service.getCssCreateHistory().length).toBe(0);
     expect(service.getCssCreateDebugSummary().totalRuns).toBe(0);
   });
+
+  it('classifies managed classes without treating unrelated combo prefixes as combos', () => {
+    service.pushCombos({ btn: ['ank-display-flex ank-alignItems-center'] });
+
+    expect(service.isComboClass('btn')).toBeTrue();
+    expect(service.isComboClass('btnVALSVL1remVL')).toBeTrue();
+    expect(service.isComboClass('btnBase')).toBeFalse();
+
+    expect(service.classifyClass('btn')).toEqual(jasmine.objectContaining({
+      kind: 'combo',
+      managed: true,
+      comboKey: 'btn',
+    }));
+    expect(service.classifyClass('btnBase')).toEqual(jasmine.objectContaining({
+      kind: 'unknown',
+      managed: false,
+    }));
+    expect(service.classifyClass('ank-color-red')).toEqual(jasmine.objectContaining({
+      kind: 'utility',
+      managed: true,
+      prefix: 'ank',
+    }));
+  });
+
+  it('expands explicit combo classes passed to cssCreate', () => {
+    service.pushCombos({ badge: ['ank-color-red ank-bg-blue'] });
+    service.clearCssCreateHistory();
+
+    service.cssCreate(['badge']);
+
+    const summary = service.getCssCreateDebugSummary();
+    expect(summary.totalRuns).toBe(1);
+    expect(summary.totalCreatedClasses).toBe(2);
+    expect(service.values.combosCreatedKeys.size).toBe(1);
+  });
+
+  it('does not discover unrelated classes that only share a combo prefix', () => {
+    service.pushCombos({ btn: ['ank-color-red'] });
+    service.clearCssCreateHistory();
+    hostElement.innerHTML = '<div class="btnBase"></div>';
+
+    service.cssCreate();
+
+    const summary = service.getCssCreateDebugSummary();
+    expect(summary.totalCreatedClasses).toBe(0);
+    expect(service.values.combosCreatedKeys.size).toBe(0);
+  });
+
+  it('audits managed stylesheets for duplicate exact rules', () => {
+    const sheet = service.values.sheet as unknown as { insertRule: (rule: string) => number };
+    sheet.insertRule('.ank-color-red{color:red;}');
+    sheet.insertRule('.ank-color-red{color:red;}');
+    sheet.insertRule('.ank-bg-blue{background:blue;}');
+
+    const audit = service.auditManagedStylesheets();
+
+    expect(audit.normal.available).toBeTrue();
+    expect(audit.normal.ruleCount).toBe(3);
+    expect(audit.normal.duplicateExactGroups).toBe(1);
+    expect(audit.normal.duplicateExactRules).toEqual([
+      { rule: '.ank-color-red{color:red;}', count: 2 },
+    ]);
+    expect(audit.totalRules).toBe(3);
+    expect(audit.totalDuplicateExactGroups).toBe(1);
+  });
+
+  it('collects rendered DOM classes from a supplied root', () => {
+    const root = document.createElement('section');
+    root.className = 'ank-display-grid shell';
+    const child = document.createElement('div');
+    child.className = 'ank-display-flex btnBase';
+    root.appendChild(child);
+
+    expect(service.collectRenderedDomClasses(root)).toEqual([
+      'ank-display-grid',
+      'shell',
+      'ank-display-flex',
+      'btnBase',
+    ]);
+  });
+
+  it('reports generated CSS readiness from managed stylesheets', () => {
+    const sheet = service.values.sheet as unknown as { insertRule: (rule: string) => number };
+    sheet.insertRule('.ank-color-red{color:red;}');
+
+    expect(service.hasGeneratedCssRules()).toBeTrue();
+  });
+
+  it('waits for generated CSS readiness and a paint frame', async () => {
+    spyOn(window, 'requestAnimationFrame').and.callFake((callback: FrameRequestCallback): number => {
+      window.setTimeout(() => callback(performance.now()), 0);
+      return 1;
+    });
+
+    const wait = service.waitForCssReady(100);
+    window.setTimeout(() => {
+      const sheet = service.values.sheet as unknown as { insertRule: (rule: string) => number };
+      sheet.insertRule('.ank-color-red{color:red;}');
+    }, 0);
+
+    await expectAsync(wait).toBeResolvedTo(true);
+  });
 });

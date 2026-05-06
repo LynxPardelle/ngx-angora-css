@@ -18,7 +18,7 @@ const findMatchingCombo = (item: string): string | undefined => {
   let matchedCombo: string | undefined;
 
   for (const comboName of values.combosKeys) {
-    if (item !== comboName && !item.startsWith(comboName)) {
+    if (item !== comboName && !item.startsWith(`${comboName}VAL`)) {
       continue;
     }
 

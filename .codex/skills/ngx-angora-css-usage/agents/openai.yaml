@@ -1,0 +1,8 @@
+interface:
+  display_name: "Ngx Angora CSS Usage"
+  short_description: "Build Angular UI with Angora runtime CSS"
+  brand_color: "#0F766E"
+  default_prompt: "Use $ngx-angora-css-usage to build or review an Angular component that uses Ngx Angora CSS correctly."
+policy:
+  allow_implicit_invocation: true
+

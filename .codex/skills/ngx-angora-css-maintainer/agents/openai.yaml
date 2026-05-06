@@ -1,0 +1,8 @@
+interface:
+  display_name: "Ngx Angora CSS Maintainer"
+  short_description: "Maintain, test, package, and publish the library"
+  brand_color: "#0F172A"
+  default_prompt: "Use $ngx-angora-css-maintainer to modify, verify, or release the Ngx Angora CSS library safely."
+policy:
+  allow_implicit_invocation: true
+

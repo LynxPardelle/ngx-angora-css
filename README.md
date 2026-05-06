@@ -94,6 +94,18 @@ const snapshot = ank.getCssCreateDebugSnapshot();
 ank.clearCssCreateHistory();
 ```
 
+For dynamic apps that need a fast explicit update after route changes or lazy rendering, the service also exposes DOM and readiness helpers:
+
+```typescript
+const renderedClasses = ank.collectRenderedDomClasses(document);
+ank.cssCreate(renderedClasses);
+
+const cssReady = await ank.waitForCssReady(1500);
+const stylesheetAudit = ank.auditManagedStylesheets();
+```
+
+`collectRenderedDomClasses(root)` returns unique class tokens from the supplied DOM scope, `hasGeneratedCssRules()` reports whether managed stylesheets or creation history show generated rules, and `waitForCssReady(timeoutMs)` waits for CSS generation plus a paint frame before resolving.
+
 `getCssCreateHistory(limit)` returns completed reports with `id`, `startedAt`, `completedAt`, `durationMs`, processed/created/skipped/failed counters, input classes, and diagnostics.
 
 `getCssCreateDebugSummary()` aggregates total runs, total duration, average duration, fastest and slowest runs, created/skipped/failed totals, and warning/error diagnostic totals.
@@ -117,6 +129,12 @@ ank.clearCssCreateReport();
 ```
 
 The report includes processed, created, skipped, and failed counters plus diagnostics such as `invalid-class-structure`, `invalid-class-discovered`, `invalid-rule-fragment`, and `stylesheet-missing`.
+
+## AI Notes
+
+AI agents working with this repository should start with [`AGENTS.md`](AGENTS.md) and [`docs/ai/ngx-angora-css-ai-notes.md`](docs/ai/ngx-angora-css-ai-notes.md).
+
+Local Codex skills and agent prompts live under `.codex/skills/` and `.codex/agents/`. They cover app integration, class authoring, runtime batching, debugging, duplicate-rule checks, and release work.
 
 ## Demo App
 
