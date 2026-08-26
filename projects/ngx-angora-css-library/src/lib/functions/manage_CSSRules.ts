@@ -3,8 +3,8 @@ import { ValuesSingleton } from '../singletons/valuesSingleton';
 /* Funtions */
 import { css_create_diagnostics } from './css_create_diagnostics';
 import { console_log } from './console_log';
-import { createMediaRule } from './private/createMediaRule';
-import { createSimpleRule } from './private/createSimpleRule';
+import { createMediaRules } from './private/createMediaRule';
+import { createSimpleRules } from './private/createSimpleRule';
 /* Types */
 import { TLogPartsOptions } from '../types';
 
@@ -22,20 +22,16 @@ export const manage_CSSRules = {
       [dontSplitted, 'dontSplitted'],
     ]);
     try {
-      if (!!dontSplitted && !Array.isArray(rules)) {
-        for (let rule of rules.split(values.separator)) {
-          if (rule !== '') {
-            manage_CSSRules.createCSSRule(rule);
-          }
-        }
-      } else if (Array.isArray(rules)) {
-        rules.forEach(rule => {
-          manage_CSSRules.createCSSRule(rule);
-        });
-      } else {
-        manage_CSSRules.createCSSRule(rules);
-      }
+      const ruleList = Array.isArray(rules)
+        ? rules
+        : dontSplitted
+          ? rules.split(values.separator)
+          : [rules];
+      const normalizedRules = ruleList.map(rule => rule.trim()).filter(rule => rule.length > 0);
+      createSimpleRules(normalizedRules.filter(rule => !rule.startsWith('@media')));
+      createMediaRules(normalizedRules.filter(rule => rule.startsWith('@media')));
     } catch (err: any) {
+      css_create_diagnostics.recordRuleCreationError(Array.isArray(rules) ? rules.join(values.separator) : rules, err);
       console_log.consoleLog('error', { err: err });
     }
   },
@@ -45,25 +41,10 @@ export const manage_CSSRules = {
       if (typeof rule !== 'string' || rule.trim().length === 0) {
         return;
       }
-      if (!rule.startsWith('@media')) {
-        createSimpleRule(rule);
-      } else {
-        createMediaRule(rule);
-      }
+      manage_CSSRules.createCSSRules([rule]);
       log(values.sheet, 'sheet');
     } catch (err: any) {
-      css_create_diagnostics.addDiagnostic({
-        code: 'rule-creation-error',
-        severity: 'error',
-        stage: 'ruleCreation',
-        message: err instanceof Error ? err.message : 'Unexpected error while inserting a CSS rule.',
-        details: {
-          rule,
-          error: err instanceof Error ? err.stack || err.message : String(err),
-        },
-        suggestedFix: 'Inspect the generated rule text and verify that it is valid CSS before insertion.',
-        recoverable: true,
-      });
+      css_create_diagnostics.recordRuleCreationError(rule, err);
       console_log.consoleLog('error', { err: err });
     }
   },

@@ -37,7 +37,7 @@ export const send2CreateRules = (classes2CreateStringed: string, bpsStringed: IB
         responsiveClasses2CreateStringed += `@media only screen and (min-width: ${b.value})${
           values.limitBPS
             ? bpsStringed.length > 1 && i !== 0
-              ? `and (max-width: ${bpsStringed[i - 1].value})`
+              ? ` and (max-width: ${bpsStringed[i - 1].value})`
               : ''
             : ''
         } { ${specifyOption} ${b.class2Create}}${values.separator}`;
@@ -47,20 +47,14 @@ export const send2CreateRules = (classes2CreateStringed: string, bpsStringed: IB
   }
   if (classes2CreateStringed !== '') {
     log(classes2CreateStringed, 'classes2CreateStringed');
-
-    for (const class2Create of classes2CreateStringed.split(values.separator)) {
-      if (class2Create !== '') {
-        manage_CSSRules.createCSSRules(class2Create);
-      }
-    }
+    manage_CSSRules.createCSSRules(
+      classes2CreateStringed.split(values.separator).filter(class2Create => class2Create !== '')
+    );
   }
   if (responsiveClasses2CreateStringed !== '') {
     log(responsiveClasses2CreateStringed, 'responsiveClasses2CreateStringed');
-
-    for (const class2Create of responsiveClasses2CreateStringed.split(values.separator)) {
-      if (class2Create !== '') {
-        manage_CSSRules.createCSSRules(class2Create);
-      }
-    }
+    manage_CSSRules.createCSSRules(
+      responsiveClasses2CreateStringed.split(values.separator).filter(class2Create => class2Create !== '')
+    );
   }
 };

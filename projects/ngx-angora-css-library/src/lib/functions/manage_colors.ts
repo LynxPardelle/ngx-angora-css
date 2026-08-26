@@ -21,7 +21,15 @@ export const manage_colors = {
         const errMsg = `The color value "${cleanedValue}" is a reserved abbreviation and cannot be used for color "${color}".`;
         return { success: false, message: 'Error while pushing color.', errors: [errMsg] };
       }
+      const valueChanged = values.colors[color] !== cleanedValue;
       values.colors[color] = cleanedValue;
+      if (!valueChanged) {
+        return {
+          success: true,
+          data: { [color]: cleanedValue },
+          message: `The color ${color} already has the value ${cleanedValue}.`,
+        };
+      }
       if (!fromPushColors) {
         return afterManageColors({ [color]: cleanedValue });
       } else {
@@ -45,13 +53,24 @@ export const manage_colors = {
     const managedColors: { [key: string]: string } = {};
     try {
       const keys = Object.keys(newColors);
+      if (keys.length === 0) {
+        return {
+          success: false,
+          message: 'Error while pushing colors.',
+          errors: ['There are no colors to push.'],
+        };
+      }
       for (let i = 0; i < keys.length; i++) {
         const key = keys[i];
         const rawValue = newColors[key];
+        const previousValue = values.colors[key];
         try {
           const pushedColor = manage_colors.pushColor(key, rawValue, true);
           if (pushedColor.success) {
-            managedColors[key] = (pushedColor.data as { [key: string]: string })[key];
+            const managedValue = (pushedColor.data as { [key: string]: string })[key];
+            if (previousValue !== managedValue) {
+              managedColors[key] = managedValue;
+            }
           } else {
             errors.push(`Error while pushing color "${key}": ${pushedColor.message}`);
             if (pushedColor.errors && pushedColor.errors.length > 0) {
@@ -76,6 +95,8 @@ export const manage_colors = {
           }
         }
         return result;
+      } else if (errors.length === 0) {
+        return { success: true, message: 'Colors already have the requested values.' };
       } else {
         throw new Error('There are no colors to push.');
       }
@@ -112,7 +133,15 @@ export const manage_colors = {
   updateColor(color: string, value: string, fromUpdateColors: boolean = false): TReturnFromChanges {
     try {
       if (values.colors[color.toString()]) {
-        values.colors[color] = value.replace(/!important|!default|(\s{2,})/g, '');
+        const cleanedValue = value.replace(/!important|!default|(\s{2,})/g, '');
+        if (values.colors[color] === cleanedValue) {
+          return {
+            success: true,
+            data: { [color]: cleanedValue },
+            message: `The color ${color} already has the value ${cleanedValue}.`,
+          };
+        }
+        values.colors[color] = cleanedValue;
       } else {
         throw new Error(`There is no color named ${color}.`);
       }
@@ -145,10 +174,14 @@ export const manage_colors = {
       for (let i = 0; i < keys.length; i++) {
         const key = keys[i];
         const rawValue = colors[key];
+        const previousValue = values.colors[key];
         try {
           const updated = manage_colors.updateColor(key, rawValue, true);
           if (updated.success) {
-            managedColors[key] = (updated.data as { [key: string]: string })[key];
+            const managedValue = (updated.data as { [key: string]: string })[key];
+            if (previousValue !== managedValue) {
+              managedColors[key] = managedValue;
+            }
           } else {
             errors.push(`Error while updating color "${key}": ${updated.message}`);
             if (updated.errors && updated.errors.length > 0) {
@@ -172,6 +205,8 @@ export const manage_colors = {
           }
         }
         return result;
+      } else if (errors.length === 0) {
+        return { success: true, message: 'Colors already have the requested values.' };
       } else {
         throw new Error(`There are no colors to update.`);
       }
@@ -253,17 +288,17 @@ const afterManageColors = (managedColors: { [key: string]: string }, toDelete: b
         });
       }
     }
-    const classesToUpdate: string[] = [];
+    const classesToUpdate = new Set<string>();
     for (let color in managedColors) {
       for (let createdClass of values.alreadyCreatedClasses) {
         if (createdClass.includes(color)) {
-          classesToUpdate.push(createdClass);
+          classesToUpdate.add(createdClass);
         }
       }
     }
     let successDate: number | void | undefined = undefined;
-    if (classesToUpdate.length > 0) {
-      successDate = cssCreate.cssCreate(classesToUpdate);
+    if (classesToUpdate.size > 0) {
+      successDate = cssCreate.cssCreate(Array.from(classesToUpdate));
     }
     if (!successDate) {
       throw new Error('No classes were updated after managing colors.');

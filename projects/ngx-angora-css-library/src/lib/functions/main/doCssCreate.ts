@@ -59,6 +59,24 @@ const expandExplicitClasses = (classes: string[]): string[] => {
   return Array.from(expandedClasses);
 };
 
+const collectExistingStylesheetClasses = (): ReadonlySet<string> => {
+  const classNames = new Set<string>();
+  if (!values.sheet) return classNames;
+
+  const classPattern = /\.([_a-zA-Z][\w-]*)/g;
+  for (let index = 0; index < values.sheet.cssRules.length; index++) {
+    const cssRule = values.sheet.cssRules[index] as CSSStyleRule;
+    const selector = typeof cssRule.selectorText === 'string' ? cssRule.selectorText : cssRule.cssText.split('{')[0];
+    classPattern.lastIndex = 0;
+    const match = classPattern.exec(selector);
+    if (match) {
+      classNames.add(match[1]);
+    }
+  }
+
+  return classNames;
+};
+
 export const doCssCreate = (id: number, updateClasses2Create?: string[]): number => {
   css_create_diagnostics.startRun(updateClasses2Create || []);
   try {
@@ -67,6 +85,7 @@ export const doCssCreate = (id: number, updateClasses2Create?: string[]): number
     const classes2Create: string[] = updateClasses2Create
       ? expandExplicitClasses(updateClasses2Create)
       : getNewClasses2Create();
+    const existingStylesheetClasses = updateClasses2Create ? undefined : collectExistingStylesheetClasses();
     css_create_diagnostics.setInputClasses(classes2Create);
     log(classes2Create, `classes2Create [id:${id}]`);
     const classes2CreateStringed: string[] = [];
@@ -74,7 +93,7 @@ export const doCssCreate = (id: number, updateClasses2Create?: string[]): number
     for (let class2Create of classes2Create) {
       css_create_diagnostics.startClass(class2Create);
       try {
-        const parsedResult = parseClass(class2Create, !updateClasses2Create);
+        const parsedResult = parseClass(class2Create, !updateClasses2Create, { existingStylesheetClasses });
         const { classes2CreateStringed: returnedClasses2CreateStringed, bps: returnedBpsStringed, status } = parsedResult;
 
         if (status === 'created') {
