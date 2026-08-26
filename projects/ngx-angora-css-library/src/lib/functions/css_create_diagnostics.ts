@@ -99,6 +99,21 @@ export const css_create_diagnostics = {
     }
   },
 
+  recordRuleCreationError(rule: string, error: unknown): void {
+    this.addDiagnostic({
+      code: 'rule-creation-error',
+      severity: 'error',
+      stage: 'ruleCreation',
+      message: error instanceof Error ? error.message : 'Unexpected error while inserting a CSS rule.',
+      details: {
+        rule,
+        error: error instanceof Error ? error.stack || error.message : String(error),
+      },
+      suggestedFix: 'Inspect the generated rule text and verify that it is valid CSS before insertion.',
+      recoverable: true,
+    });
+  },
+
   completeRun(durationMs?: number): TCssCreateReport {
     const report = ensureActiveReport();
     report.completedAt = Date.now();

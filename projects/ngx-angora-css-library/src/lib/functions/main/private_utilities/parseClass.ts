@@ -32,6 +32,7 @@ type TParseClassOptions = {
   checkDuplicates?: boolean;
   recordDiagnostics?: boolean;
   diagnostics?: TClassCreationDiagnostic[];
+  existingStylesheetClasses?: ReadonlySet<string>;
 };
 
 const buildEmptyResult = (status: IparseClassReturn['status'] = 'invalid'): IparseClassReturn => ({
@@ -136,6 +137,7 @@ export const parseClass = (
     checkDuplicates: options.checkDuplicates ?? isClean,
     recordDiagnostics: options.recordDiagnostics ?? true,
     diagnostics: options.diagnostics,
+    existingStylesheetClasses: options.existingStylesheetClasses,
   };
 
   if (typeof class2Create !== 'string' || class2Create.trim().length === 0) {
@@ -190,7 +192,9 @@ export const parseClass = (
     }
     if (
       values.alreadyCreatedClasses.has(originalClassName) ||
-      (!!values.sheet &&
+      parseOptions.existingStylesheetClasses?.has(originalClassName) ||
+      (parseOptions.existingStylesheetClasses === undefined &&
+        !!values.sheet &&
         [...values.sheet.cssRules].find((i: CSSRule) =>
           i.cssText.split(' ').find((aC: string) => {
             return aC.replace('.', '') === originalClassName;

@@ -9,16 +9,27 @@ const values: ValuesSingleton = ValuesSingleton.getInstance();
 const log = (t: any, p?: TLogPartsOptions) => {
   console_log.betterLogV1('createMediaRule', t, p);
 };
-const multiLog = (toLog: [any, TLogPartsOptions?][]) => {
-  console_log.multiBetterLogV1('createMediaRule', toLog);
-};
 
 type ParsedMediaRule = {
   conditionText: string;
   nestedRules: string[];
 };
 
-const normalizeText = (text: string | undefined): string => (text || '').trim().replace(/\s+/g, ' ');
+type PendingMediaRules = {
+  rulesBySelector: Map<string, string>;
+};
+
+const transformOutsideStrings = (text: string, transform: (part: string) => string): string =>
+  text
+    .split(/("(?:\\[\s\S]|[^"\\])*"|'(?:\\[\s\S]|[^'\\])*'|\\(?:\r\n|[\s\S]))/g)
+    .map((part, index) => (index % 2 === 0 ? transform(part) : part))
+    .join('');
+
+const normalizeText = (text: string | undefined): string =>
+  transformOutsideStrings((text || '').trim(), part => part.replace(/\s+/g, ' ').replace(/\s*,\s*/g, ', '));
+
+const normalizeMediaCondition = (text: string | undefined): string =>
+  transformOutsideStrings(normalizeText(text), part => part.replace(/\)\s*and\s*\(/gi, ') and ('));
 
 const getRuleSelector = (rule: string): string => normalizeText(rule.split('{')[0]);
 
@@ -35,7 +46,7 @@ const parseMediaRule = (rule: string): ParsedMediaRule | null => {
   const match = rule.match(/^@media\s+([^{]+)\s*\{([\s\S]*)\}\s*$/);
   if (!match) return null;
 
-  const conditionText = normalizeText(match[1]);
+  const conditionText = normalizeMediaCondition(match[1]);
   const nestedRules: string[] = [];
   const nestedRuleRegex = /([^{}]+)\{([^{}]*)\}/g;
   let nestedMatch: RegExpExecArray | null;
@@ -54,107 +65,117 @@ const parseMediaRule = (rule: string): ParsedMediaRule | null => {
   };
 };
 
-const findMediaRule = (conditionText: string): CSSMediaRule | undefined => {
-  for (const rule of Array.from(values.responsiveSheet?.cssRules || [])) {
-    const mediaRule = rule as CSSMediaRule;
-    if (typeof mediaRule.conditionText === 'string' && mediaRule.cssRules && normalizeText(mediaRule.conditionText) === conditionText) {
-      return mediaRule;
-    }
-  }
-
-  return undefined;
+const reportInvalidMediaRule = (rule: string): void => {
+  css_create_diagnostics.addDiagnostic({
+    code: 'invalid-media-rule-fragment',
+    severity: 'warning',
+    stage: 'ruleCreation',
+    message: 'Skipped responsive CSS rule insertion because the media rule could not be parsed.',
+    details: {
+      rule,
+    },
+    suggestedFix: 'Inspect the generated media rule and make sure it contains a condition, selector, and declaration block.',
+    recoverable: true,
+  });
 };
 
-const deleteNestedSelector = (mediaRule: CSSMediaRule, selector: string): void => {
-  const normalizedSelector = normalizeText(selector);
-  for (let i = mediaRule.cssRules.length - 1; i >= 0; i--) {
-    if (getCssRuleSelector(mediaRule.cssRules[i]) === normalizedSelector) {
-      mediaRule.deleteRule(i);
+export const createMediaRules = (rules: string[]): void => {
+  if (!values.responsiveSheet || !Array.isArray(rules) || rules.length === 0) return;
+
+  const pendingByCondition = new Map<string, PendingMediaRules>();
+  const directRules: string[] = [];
+  for (const rule of rules) {
+    if (typeof rule !== 'string' || rule.trim().length === 0) continue;
+    log(rule, 'rule');
+    const parsedRule = parseMediaRule(rule);
+    if (!parsedRule || parsedRule.nestedRules.length === 0) {
+      directRules.push(rule);
+      continue;
+    }
+
+    const pending = pendingByCondition.get(parsedRule.conditionText) || {
+      rulesBySelector: new Map<string, string>(),
+    };
+    for (const nestedRule of parsedRule.nestedRules) {
+      const selector = getRuleSelector(nestedRule);
+      pending.rulesBySelector.delete(selector);
+      pending.rulesBySelector.set(selector, nestedRule);
+    }
+    pendingByCondition.set(parsedRule.conditionText, pending);
+  }
+
+  for (const rule of directRules) {
+    try {
+      values.responsiveSheet.insertRule(rule, values.responsiveSheet.cssRules.length);
+    } catch (error: unknown) {
+      reportInvalidMediaRule(rule);
+      css_create_diagnostics.recordRuleCreationError(rule, error);
     }
   }
-};
+  if (pendingByCondition.size === 0) return;
 
-const deleteDuplicateInsertedNestedSelectors = (mediaRule: CSSMediaRule, insertedIndex: number): void => {
-  const insertedRule = mediaRule.cssRules[insertedIndex];
-  if (!insertedRule) return;
-
-  const insertedSelector = getCssRuleSelector(insertedRule);
-  if (!insertedSelector) return;
-
-  for (let i = mediaRule.cssRules.length - 1; i >= 0; i--) {
-    if (i === insertedIndex) continue;
-
-    if (getCssRuleSelector(mediaRule.cssRules[i]) === insertedSelector) {
-      mediaRule.deleteRule(i);
-    }
+  const ownersByCondition = new Map<string, CSSMediaRule[]>();
+  for (let index = 0; index < values.responsiveSheet.cssRules.length; index++) {
+    const mediaRule = values.responsiveSheet.cssRules[index] as CSSMediaRule;
+    if (typeof mediaRule.conditionText !== 'string' || !mediaRule.cssRules) continue;
+    const conditionText = normalizeMediaCondition(mediaRule.conditionText);
+    const owners = ownersByCondition.get(conditionText) || [];
+    owners.push(mediaRule);
+    ownersByCondition.set(conditionText, owners);
   }
-};
 
-export const createMediaRule = (rule: string): void => {
-  log(rule, 'rule');
-  let index: number | undefined;
-  if (!values.responsiveSheet || typeof rule !== 'string' || rule.trim().length === 0) return;
-  const parsedMediaRule = parseMediaRule(rule);
-  if (parsedMediaRule && parsedMediaRule.nestedRules.length > 0) {
-    let mediaRule = findMediaRule(parsedMediaRule.conditionText);
-    if (!mediaRule) {
-      values.responsiveSheet.insertRule(`@media ${parsedMediaRule.conditionText} {}`, values.responsiveSheet.cssRules.length);
-      mediaRule = findMediaRule(parsedMediaRule.conditionText);
-    }
-
-    if (mediaRule) {
-      for (const nestedRule of parsedMediaRule.nestedRules) {
-        deleteNestedSelector(mediaRule, getRuleSelector(nestedRule));
-        const insertedIndex = mediaRule.insertRule(nestedRule, mediaRule.cssRules.length);
-        deleteDuplicateInsertedNestedSelectors(mediaRule, insertedIndex);
+  for (const [conditionText, pending] of pendingByCondition) {
+    const selectorOrder = [...pending.rulesBySelector.keys()];
+    let owners = ownersByCondition.get(conditionText) || [];
+    if (owners.length === 0) {
+      const mediaRuleText = `@media ${conditionText} {}`;
+      let insertedIndex: number;
+      try {
+        insertedIndex = values.responsiveSheet.insertRule(mediaRuleText, values.responsiveSheet.cssRules.length);
+      } catch (error: unknown) {
+        css_create_diagnostics.recordRuleCreationError(mediaRuleText, error);
+        continue;
       }
-      return;
+      const mediaRule = values.responsiveSheet.cssRules[insertedIndex] as CSSMediaRule;
+      if (!mediaRule?.cssRules) continue;
+      owners = [mediaRule];
+      ownersByCondition.set(conditionText, owners);
     }
-  }
 
-  const selectorFragment = rule.split('{')[0]?.replace('\n', '').replace(/\s+/g, ' ') || '';
-  if (!selectorFragment) {
-    css_create_diagnostics.addDiagnostic({
-      code: 'invalid-media-rule-fragment',
-      severity: 'warning',
-      stage: 'ruleCreation',
-      message: 'Skipped responsive CSS rule insertion because the selector fragment is empty.',
-      details: {
-        rule,
-      },
-      suggestedFix: 'Inspect the generated media rule and make sure it contains a selector before the declaration block.',
-      recoverable: true,
-    });
-    return;
-  }
-  let originalRule: any = [...values.responsiveSheet.cssRules].some((cssRule: any, i: number) => {
-    if (cssRule.cssText.includes(selectorFragment)) {
-      index = i;
-      return true;
-    } else {
-      return false;
+    const targetSelectors = new Set(selectorOrder);
+    const existingRulesByOwner = new Map<CSSMediaRule, Array<{ index: number; selector: string }>>();
+    for (const owner of owners) {
+      const existingRules: Array<{ index: number; selector: string }> = [];
+      for (let index = 0; index < owner.cssRules.length; index++) {
+        const selector = getCssRuleSelector(owner.cssRules[index]);
+        if (targetSelectors.has(selector)) {
+          existingRules.push({ index, selector });
+        }
+      }
+      existingRulesByOwner.set(owner, existingRules);
     }
-  })
-    ? [...values.responsiveSheet.cssRules].find(
-        i =>
-          i.cssText
-            /* .includes(
-                    selectorFragment
-                  ) */
-            .split(' ')
-            .find((aC: string) => {
-              return aC.replace('.', '') === selectorFragment;
-            })
-        /*
-            i.cssText.split(' ').find((aC: string) => {
-                return aC.replace('.', '') === bef;
-              })
-            */
-      )
-    : undefined;
-  if (originalRule && index !== undefined) {
-    values.responsiveSheet.deleteRule(index);
+
+    const targetOwner = owners[owners.length - 1];
+    const insertedSelectors = new Set<string>();
+    for (const selector of selectorOrder) {
+      const rule = pending.rulesBySelector.get(selector) as string;
+      try {
+        targetOwner.insertRule(rule, targetOwner.cssRules.length);
+        insertedSelectors.add(selector);
+      } catch (error: unknown) {
+        css_create_diagnostics.recordRuleCreationError(rule, error);
+      }
+    }
+
+    for (const [owner, existingRules] of existingRulesByOwner) {
+      for (let index = existingRules.length - 1; index >= 0; index--) {
+        const existingRule = existingRules[index];
+        if (insertedSelectors.has(existingRule.selector)) {
+          owner.deleteRule(existingRule.index);
+        }
+      }
+    }
   }
-  log(rule, 'rule');
-  values.responsiveSheet.insertRule(rule, values.responsiveSheet.cssRules.length);
 };
+
+export const createMediaRule = (rule: string): void => createMediaRules([rule]);

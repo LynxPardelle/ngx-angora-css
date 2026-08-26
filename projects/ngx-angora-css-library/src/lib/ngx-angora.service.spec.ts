@@ -197,6 +197,58 @@ describe('NgxAngoraService', () => {
     expect(summary.slowestDurationMs).toBeGreaterThanOrEqual(summary.fastestDurationMs);
   });
 
+  it('does not rerun cssCreate when pushed or updated colors keep the same values', () => {
+    service.values.alreadyCreatedClasses.add('ank-color-primary');
+    service.clearCssCreateHistory();
+
+    const pushed = service.pushColors({ primary: service.values.colors['primary'] });
+    const updated = service.updateColors({ primary: service.values.colors['primary'] });
+
+    expect(pushed.success).toBeTrue();
+    expect(updated.success).toBeTrue();
+    expect(service.getCssCreateDebugSummary().totalRuns).toBe(0);
+  });
+
+  it('keeps an empty pushColors request invalid', () => {
+    expect(service.pushColors({}).success).toBeFalse();
+  });
+
+  it('reruns cssCreate once when a managed color value actually changes', () => {
+    const originalValue = service.values.colors['primary'];
+    service.values.alreadyCreatedClasses.add('ank-color-primary');
+    service.clearCssCreateHistory();
+
+    try {
+      const result = service.updateColors({ primary: '#123456' });
+
+      expect(result.success).toBeTrue();
+      expect(service.getCssCreateDebugSummary().totalRuns).toBe(1);
+      expect(service.auditManagedStylesheets().normal.ruleCount).toBe(1);
+    } finally {
+      service.updateColors({ primary: originalValue });
+    }
+  });
+
+  it('updates only classes for colors that changed in a mixed palette', () => {
+    const originalSecondary = service.values.colors['secondary'];
+    service.values.alreadyCreatedClasses.add('ank-color-primary');
+    service.values.alreadyCreatedClasses.add('ank-color-secondary');
+    service.clearCssCreateHistory();
+
+    try {
+      const result = service.updateColors({
+        primary: service.values.colors['primary'],
+        secondary: '#123456',
+      });
+
+      expect(result.success).toBeTrue();
+      expect(service.getCssCreateHistory().length).toBe(1);
+      expect(service.getCssCreateHistory()[0].inputClasses).toEqual(['ank-color-secondary']);
+    } finally {
+      service.updateColors({ secondary: originalSecondary });
+    }
+  });
+
   it('exposes a cssCreate debug snapshot and can clear the run history', () => {
     service.cssCreate(['ank-color-red']);
 
