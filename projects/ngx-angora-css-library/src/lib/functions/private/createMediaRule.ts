@@ -131,7 +131,18 @@ export const createMediaRules = (rules: string[]): void => {
       const mediaRuleText = `@media ${conditionText} {}`;
       let insertedIndex: number;
       try {
-        insertedIndex = values.responsiveSheet.insertRule(mediaRuleText, values.responsiveSheet.cssRules.length);
+        let insertionIndex = values.responsiveSheet.cssRules.length;
+        // Numeric min-width owners must remain ascending across delayed batches.
+        // Legacy "only screen" and bounded media queries retain their order.
+        const numericWidth = conditionText.match(/^screen and \(min-width: ([1-9]\d{0,3})px\)$/)?.[1];
+        if (numericWidth && Number(numericWidth) <= 8192) {
+          const nextOwner = Array.from(values.responsiveSheet.cssRules).findIndex(rule => {
+            const width = (rule as CSSMediaRule).conditionText?.match(/^screen and \(min-width: ([1-9]\d{0,3})px\)$/)?.[1];
+            return !!width && Number(width) <= 8192 && Number(width) > Number(numericWidth);
+          });
+          if (nextOwner >= 0) insertionIndex = nextOwner;
+        }
+        insertedIndex = values.responsiveSheet.insertRule(mediaRuleText, insertionIndex);
       } catch (error: unknown) {
         css_create_diagnostics.recordRuleCreationError(mediaRuleText, error);
         continue;

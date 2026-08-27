@@ -81,6 +81,8 @@ For manual control, the service also exposes `beginCssCreateBatch()` and `endCss
 
 Forced updates are idempotent: recreating an existing selector replaces the matching rule before inserting the new one. This applies to normal selectors and nested responsive selectors inside media rules.
 
+Canonical numeric breakpoint aliases (`px1` through `px8192`, without leading zeros, registered with the matching `Npx` value) use ascending min-width cascade order, including across later creation batches. Their generated `screen and (min-width: Npx)` owners intentionally stay separate from legacy named breakpoints using `only screen`, even at equal widths. Named breakpoints and bounded `limitBPS` behavior remain unchanged. Mixing numeric and named aliases for the same property is not an ordering contract.
+
 ## CSS Creation Debugging
 
 The runtime records timing and run history for every completed `cssCreate()` call. Use these methods to build debug panels without relying on a DOM element such as `cssCreateMessage`:

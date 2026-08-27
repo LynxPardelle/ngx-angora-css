@@ -33,8 +33,12 @@ export const send2CreateRules = (classes2CreateStringed: string, bpsStringed: IB
         [b.class2Create, 'class2Create'],
       ]);
 
+      // Keep numeric mobile-first owners separate from legacy named breakpoints,
+      // including when both aliases resolve to the same width.
+      const numeric = !values.limitBPS && /^px[1-9]\d{0,3}$/.test(b.bp)
+        && Number(b.bp.slice(2)) <= 8192 && b.value === `${b.bp.slice(2)}px`;
       for (const specifyOption of values.bpsSpecifyOptions) {
-        responsiveClasses2CreateStringed += `@media only screen and (min-width: ${b.value})${
+        responsiveClasses2CreateStringed += `@media ${numeric ? '' : 'only '}screen and (min-width: ${b.value})${
           values.limitBPS
             ? bpsStringed.length > 1 && i !== 0
               ? ` and (max-width: ${bpsStringed[i - 1].value})`
